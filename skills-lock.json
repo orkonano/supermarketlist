@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "hardcoded-credential-finder": {
+      "source": "jeremylongshore/claude-code-plugins-plus-skills",
+      "sourceType": "github",
+      "computedHash": "23942154f7d87962bc72991e26833aa0991a7731a98ec5ad76aee137e91a4b96"
+    }
+  }
+}

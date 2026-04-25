@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
+
+# local sqlite db
+/prisma/*.db
+/prisma/*.db-shm
+/prisma/*.db-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Claude Code memory
+.claude/
