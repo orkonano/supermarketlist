@@ -48,7 +48,7 @@ export default function AddItemForm({ month, year, categories }: Props) {
             required
             placeholder="Item name *"
             autoFocus
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
         </div>
         <div className="flex gap-2">
@@ -74,7 +74,7 @@ export default function AddItemForm({ month, year, categories }: Props) {
             name="addedBy"
             required
             placeholder="Your name *"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
         </div>
         <div className="flex gap-2 pt-1">
