@@ -3,11 +3,12 @@ import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { logout } from "@/lib/auth-actions";
 import ShoppingList from "./components/ShoppingList";
+import VerificationBanner from "./components/VerificationBanner";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; year?: string }>;
+  searchParams: Promise<{ month?: string; year?: string; verified?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const now = new Date();
@@ -17,7 +18,7 @@ export default async function Home({
   const session = await verifySession();
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { name: true },
+    select: { name: true, emailVerified: true },
   });
 
   const items = await getItems(month, year);
@@ -42,6 +43,16 @@ export default async function Home({
             </form>
           </div>
         </div>
+
+        {params.verified === "1" && <VerificationBanner verified />}
+        {params.error && <VerificationBanner error={params.error} />}
+
+        {!user?.emailVerified && !params.verified && (
+          <div className="mb-6 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            Please check your email and click the verification link to confirm your account.
+          </div>
+        )}
+
         <ShoppingList items={items} month={month} year={year} />
       </div>
     </main>
