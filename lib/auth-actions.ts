@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
+import { start } from "workflow/api";
 import { prisma } from "./prisma";
 import { createSession, deleteSession } from "./session";
 import { SignupFormSchema, LoginFormSchema, FormState } from "./definitions";
+import { emailVerificationWorkflow } from "@/workflows/email-verification";
 
 export async function signup(state: FormState, formData: FormData): Promise<FormState> {
   const validated = SignupFormSchema.safeParse({
@@ -31,6 +33,7 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
   });
 
   await createSession(user.id);
+  await start(emailVerificationWorkflow, [user.id, user.email, user.name]);
   redirect("/");
 }
 
