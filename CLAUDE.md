@@ -19,3 +19,14 @@ npm run migrate:turso
 The script (`scripts/migrate-turso.ts`) connects via `@libsql/client`, maintains a `_prisma_migrations` tracking table, and applies any unapplied SQL files from `prisma/migrations/`.
 
 Required env vars: `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+
+## package-lock.json
+
+Always commit `package-lock.json` alongside any `package.json` changes. The CI pipeline uses `npm ci`, which fails if the two files are out of sync.
+
+After installing or removing packages, run:
+
+```bash
+npm install
+git add package-lock.json
+```
