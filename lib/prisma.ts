@@ -2,17 +2,18 @@ import path from "path";
 import { PrismaClient } from "@/app/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-function resolveDbUrl(): string {
-  const env = process.env.DATABASE_URL;
-  if (env && !env.startsWith("file:./") && !env.startsWith("file:../")) {
-    return env;
-  }
-  const rel = env ? env.replace(/^file:/, "") : "./prisma/dev.db";
+function resolveLocalDbUrl(): string {
+  const env = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+  const rel = env.replace(/^file:/, "");
   return `file:${path.join(process.cwd(), rel)}`;
 }
 
 function createPrismaClient() {
-  const adapter = new PrismaLibSql({ url: resolveDbUrl() });
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  const url = tursoUrl ?? resolveLocalDbUrl();
+  const adapter = new PrismaLibSql({ url, ...(tursoToken ? { authToken: tursoToken } : {}) });
   return new PrismaClient({ adapter });
 }
 

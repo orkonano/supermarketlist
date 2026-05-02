@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npm run migrate:turso && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "migrate:turso": "tsx scripts/migrate-turso.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.2",
+    "@libsql/client": "^0.17.3",
     "@prisma/adapter-libsql": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "bcryptjs": "^3.0.3",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.5"
   }
