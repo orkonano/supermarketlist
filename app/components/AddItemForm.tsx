@@ -1,15 +1,16 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { addItem } from "@/lib/actions";
+import { addListItem } from "@/lib/list-actions";
 
 type Props = {
   month: number;
   year: number;
   categories: string[];
+  listId: string;
 };
 
-export default function AddItemForm({ month, year, categories }: Props) {
+export default function AddItemForm({ month, year, categories, listId }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -20,7 +21,7 @@ export default function AddItemForm({ month, year, categories }: Props) {
     fd.set("month", String(month));
     fd.set("year", String(year));
     startTransition(async () => {
-      await addItem(fd);
+      await addListItem(listId, fd);
       formRef.current?.reset();
       setOpen(false);
     });
@@ -42,15 +43,13 @@ export default function AddItemForm({ month, year, categories }: Props) {
     <div className="bg-white rounded-2xl shadow-sm p-5">
       <h2 className="text-base font-semibold text-gray-800 mb-4">New Item</h2>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <input
-            name="name"
-            required
-            placeholder="Item name *"
-            autoFocus
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
+        <input
+          name="name"
+          required
+          placeholder="Item name *"
+          autoFocus
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
         <div className="flex gap-2">
           <input
             name="quantity"
@@ -63,20 +62,16 @@ export default function AddItemForm({ month, year, categories }: Props) {
           >
             <option value="">Category</option>
             {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
+              <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
-        <div>
-          <input
-            name="addedBy"
-            required
-            placeholder="Your name *"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
+        <input
+          name="addedBy"
+          required
+          placeholder="Your name *"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
         <div className="flex gap-2 pt-1">
           <button
             type="button"

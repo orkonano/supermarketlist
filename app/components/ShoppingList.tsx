@@ -20,9 +20,10 @@ type Props = {
   items: Item[];
   month: number;
   year: number;
+  listId: string;
 };
 
-export default function ShoppingList({ items, month, year }: Props) {
+export default function ShoppingList({ items, month, year, listId }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -39,7 +40,7 @@ export default function ShoppingList({ items, month, year }: Props) {
 
   function navigate(m: number, y: number) {
     startTransition(() => {
-      router.push(`/?month=${m}&year=${y}`);
+      router.push(`/lists/${listId}?month=${m}&year=${y}`);
     });
   }
 
@@ -58,7 +59,6 @@ export default function ShoppingList({ items, month, year }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Month navigation */}
       <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm p-4">
         <button
           onClick={prevMonth}
@@ -86,10 +86,8 @@ export default function ShoppingList({ items, month, year }: Props) {
         </button>
       </div>
 
-      {/* Add item form */}
-      <AddItemForm month={month} year={year} categories={CATEGORIES} />
+      <AddItemForm month={month} year={year} categories={CATEGORIES} listId={listId} />
 
-      {/* Items grouped by category */}
       {total === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <div className="text-4xl mb-3">🛒</div>
@@ -107,7 +105,7 @@ export default function ShoppingList({ items, month, year }: Props) {
               </div>
               <ul className="divide-y divide-gray-50">
                 {catItems.map((item) => (
-                  <ItemRow key={item.id} item={item} />
+                  <ItemRow key={item.id} item={item} listId={listId} />
                 ))}
               </ul>
             </div>
