@@ -7,6 +7,7 @@ import { prisma } from "./prisma";
 import { createSession, deleteSession } from "./session";
 import { SignupFormSchema, LoginFormSchema, FormState } from "./definitions";
 import { emailVerificationWorkflow } from "@/workflows/email-verification";
+import { acceptInvite } from "./invite-actions";
 
 export async function signup(state: FormState, formData: FormData): Promise<FormState> {
   const validated = SignupFormSchema.safeParse({
@@ -34,7 +35,14 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
 
   await createSession(user.id);
   await start(emailVerificationWorkflow, [user.id, user.email, user.name]);
-  redirect("/");
+
+  const inviteToken = formData.get("inviteToken") as string | null;
+  if (inviteToken) {
+    const result = await acceptInvite(inviteToken, user.id);
+    if ("listId" in result) redirect(`/lists/${result.listId}`);
+  }
+
+  redirect("/lists");
 }
 
 export async function login(state: FormState, formData: FormData): Promise<FormState> {
@@ -60,7 +68,13 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
   }
 
   await createSession(user.id);
-  redirect("/");
+
+  const inviteToken = formData.get("inviteToken") as string | null;
+  if (inviteToken) {
+    redirect(`/api/accept-invite?token=${encodeURIComponent(inviteToken)}`);
+  }
+
+  redirect("/lists");
 }
 
 export async function logout() {
