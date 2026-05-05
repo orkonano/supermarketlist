@@ -42,6 +42,16 @@ INSERT INTO "NewTable" (...) SELECT ... FROM "OldTable";
 PRAGMA defer_foreign_keys=ON; ...
 ```
 
+## Git commit signing (GPG)
+
+This repo uses GPG-signed commits. In every new terminal session, run this before committing:
+
+```bash
+export GPG_TTY=$(tty)
+```
+
+Without it, GPG fails with `Inappropriate ioctl for device` and the commit is aborted.
+
 ## CI
 
 The GitHub Actions workflow uses Node 24, which ships with npm 11. This must match the local npm version used to generate `package-lock.json`. If they diverge, `npm ci` will fail.
