@@ -20,10 +20,8 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   const parsed = EmailSchema.safeParse(email);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const member = await prisma.listMember.findUnique({
-    where: { listId_userId: { listId, userId: session.userId } },
-  });
-  if (!member) return { error: "Not authorized." };
+  const list = await prisma.list.findUnique({ where: { id: listId }, select: { ownerId: true } });
+  if (!list || list.ownerId !== session.userId) return { error: "Only the list owner can invite people." };
 
   const existing = await prisma.listInvite.findFirst({
     where: { listId, email, accepted: false },
@@ -45,12 +43,12 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
     data: { listId, email, invitedById: session.userId, token, expiresAt },
   });
 
-  const [list, inviter] = await Promise.all([
+  const [listDetails, inviter] = await Promise.all([
     prisma.list.findUnique({ where: { id: listId }, select: { name: true } }),
     prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
   ]);
 
-  await start(listInviteWorkflow, [email, inviter!.name, list!.name, token, !!invitee]);
+  await start(listInviteWorkflow, [email, inviter!.name, listDetails!.name, token, !!invitee]);
 
   revalidatePath(`/lists/${listId}/share`);
   return { success: true };

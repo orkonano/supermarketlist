@@ -48,13 +48,21 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("inviteToList", () => {
-  it("returns error when user is not a member", async () => {
-    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+  it("returns error when user is not the owner", async () => {
+    vi.mocked(prisma.list.findUnique).mockResolvedValue({ ...fakeList, ownerId: "other-user" } as never);
 
     const result = await inviteToList("list-1", "bob@example.com");
 
-    expect(result).toEqual({ error: "Not authorized." });
+    expect(result).toEqual({ error: "Only the list owner can invite people." });
     expect(vi.mocked(start)).not.toHaveBeenCalled();
+  });
+
+  it("returns error when list does not exist", async () => {
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(null);
+
+    const result = await inviteToList("list-1", "bob@example.com");
+
+    expect(result).toEqual({ error: "Only the list owner can invite people." });
   });
 
   it("returns error for invalid email", async () => {
@@ -64,7 +72,7 @@ describe("inviteToList", () => {
   });
 
   it("returns error when a pending invite already exists for the email", async () => {
-    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(fakeInvite);
 
     const result = await inviteToList("list-1", "bob@example.com");
@@ -73,11 +81,10 @@ describe("inviteToList", () => {
   });
 
   it("returns error when the invitee is already a member", async () => {
-    vi.mocked(prisma.listMember.findUnique)
-      .mockResolvedValueOnce({ listId: "list-1", userId: "user-1", joinedAt: new Date() }) // inviter is member
-      .mockResolvedValueOnce({ listId: "list-1", userId: "user-2", joinedAt: new Date() }); // invitee already member
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", name: "Bob", email: "bob@example.com" } as never);
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-2", joinedAt: new Date() });
 
     const result = await inviteToList("list-1", "bob@example.com");
 
@@ -85,14 +92,12 @@ describe("inviteToList", () => {
   });
 
   it("creates invite and starts workflow on success", async () => {
-    // inviter is a member; invitee does not exist yet
-    vi.mocked(prisma.listMember.findUnique).mockResolvedValueOnce({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.user.findUnique)
       .mockResolvedValueOnce(null) // invitee lookup — not registered
       .mockResolvedValueOnce({ id: "user-1", name: "Alice", email: "alice@example.com" } as never); // inviter name
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
-    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
 
     const result = await inviteToList("list-1", "bob@example.com");
 

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signup } from "@/lib/auth-actions";
 
-export default function SignupForm({ inviteToken }: { inviteToken?: string }) {
+export default function SignupForm({ inviteToken, inviteEmail }: { inviteToken?: string; inviteEmail?: string }) {
   const [state, action, pending] = useActionState(signup, undefined);
 
   return (
@@ -28,7 +28,9 @@ export default function SignupForm({ inviteToken }: { inviteToken?: string }) {
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
         <input
           id="email" name="email" type="email" autoComplete="email" required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-gray-900 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          defaultValue={inviteEmail}
+          readOnly={!!inviteEmail}
+          className={`w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-gray-900 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${inviteEmail ? "bg-gray-50 text-gray-500" : ""}`}
         />
         {state?.errors?.email && <p className="mt-1 text-xs text-red-600">{state.errors.email[0]}</p>}
       </div>

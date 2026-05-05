@@ -31,6 +31,8 @@ export default async function SharePage({
   const isMember = list.members.some((m) => m.userId === session.userId);
   if (!isMember) notFound();
 
+  const isOwner = list.ownerId === session.userId;
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -41,10 +43,12 @@ export default async function SharePage({
           <h1 className="text-2xl font-bold text-gray-900">Share</h1>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Invite by email</h2>
-          <ShareForm listId={listId} />
-        </div>
+        {isOwner && (
+          <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Invite by email</h2>
+            <ShareForm listId={listId} />
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">

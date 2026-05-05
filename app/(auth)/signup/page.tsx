@@ -1,4 +1,5 @@
 import SignupForm from "@/app/components/SignupForm";
+import { prisma } from "@/lib/prisma";
 
 export default async function SignupPage({
   searchParams,
@@ -6,6 +7,17 @@ export default async function SignupPage({
   searchParams: Promise<{ inviteToken?: string }>;
 }) {
   const { inviteToken } = await searchParams;
+
+  let inviteEmail: string | undefined;
+  if (inviteToken) {
+    const invite = await prisma.listInvite.findUnique({
+      where: { token: inviteToken },
+      select: { email: true, expiresAt: true, accepted: true },
+    });
+    if (invite && !invite.accepted && invite.expiresAt > new Date()) {
+      inviteEmail = invite.email;
+    }
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -16,7 +28,7 @@ export default async function SignupPage({
             {inviteToken ? "Create an account to accept the invitation" : "Start managing your shopping list"}
           </p>
         </div>
-        <SignupForm inviteToken={inviteToken} />
+        <SignupForm inviteToken={inviteToken} inviteEmail={inviteEmail} />
       </div>
     </main>
   );
