@@ -2,9 +2,8 @@
 
 import { useTransition } from "react";
 import type { Item } from "@/app/generated/prisma/client";
-import { toggleItem, deleteItem } from "@/lib/actions";
+import { toggleListItem, deleteListItem } from "@/lib/list-actions";
 
-// Hoisted outside component — static JSX is never re-created (rendering-hoist-jsx)
 const CheckIcon = (
   <svg className="w-full h-full text-white p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -17,15 +16,15 @@ const DeleteIcon = (
   </svg>
 );
 
-export default function ItemRow({ item }: { item: Item }) {
+export default function ItemRow({ item, listId }: { item: Item; listId: string }) {
   const [pending, startTransition] = useTransition();
 
   function handleToggle() {
-    startTransition(() => toggleItem(item.id, !item.checked));
+    startTransition(() => toggleListItem(listId, item.id, !item.checked));
   }
 
   function handleDelete() {
-    startTransition(() => deleteItem(item.id));
+    startTransition(() => deleteListItem(listId, item.id));
   }
 
   return (
@@ -41,7 +40,6 @@ export default function ItemRow({ item }: { item: Item }) {
       >
         {item.checked && CheckIcon}
       </button>
-
       <div className="flex-1 min-w-0">
         <span className={`text-sm font-medium ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
           {item.name}
@@ -51,7 +49,6 @@ export default function ItemRow({ item }: { item: Item }) {
         )}
         <div className="text-xs text-gray-400 mt-0.5">Added by {item.addedBy}</div>
       </div>
-
       <button
         onClick={handleDelete}
         className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-red-400 transition-all"

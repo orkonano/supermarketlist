@@ -14,11 +14,33 @@ Use the custom script instead:
 npm run migrate:turso
 ```
 
-**Workflow:** after every `prisma migrate dev` (local), also run `npm run migrate:turso` to apply the migration to the Turso production database.
+**Workflow:** after every `prisma migrate dev` (local), also run `npm run migrate:turso` to apply the migration to the Turso production database. The app always connects to Turso at runtime (even locally, because `TURSO_DATABASE_URL` is set in `.env`), so skipping this step causes `no such table` errors at runtime even though the local SQLite is up to date.
 
 The script (`scripts/migrate-turso.ts`) connects via `@libsql/client`, maintains a `_prisma_migrations` tracking table, and applies any unapplied SQL files from `prisma/migrations/`.
 
 Required env vars: `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+
+### Running `prisma migrate dev` locally
+
+`prisma.config.ts` uses `TURSO_DATABASE_URL ?? DATABASE_URL`. Because `TURSO_DATABASE_URL` is always set in `.env`, `prisma migrate dev` tries to connect to Turso and fails. To run it against the local SQLite, temporarily change `??` to `||` in `prisma.config.ts`, run the command, then revert:
+
+```bash
+# 1. change ?? to || in prisma.config.ts
+TURSO_DATABASE_URL="" npx prisma migrate dev --name <name>
+# 2. revert ?? in prisma.config.ts
+npm run migrate:turso
+```
+
+### Manual data migrations
+
+When adding a NOT NULL column to an existing table in SQLite, Prisma's generated INSERT omits the new column and fails the NOT NULL constraint. Add data migration steps **before** the `RedefineTables` block in the migration SQL:
+
+```sql
+-- populate new table first
+INSERT INTO "NewTable" (...) SELECT ... FROM "OldTable";
+-- then Prisma's RedefineTables block
+PRAGMA defer_foreign_keys=ON; ...
+```
 
 ## CI
 

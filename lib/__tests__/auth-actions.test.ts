@@ -4,6 +4,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("bcryptjs", () => ({ default: { hash: vi.fn(), compare: vi.fn() } }));
 vi.mock("workflow/api", () => ({ start: vi.fn() }));
 vi.mock("@/workflows/email-verification", () => ({ emailVerificationWorkflow: {} }));
+vi.mock("../invite-actions", () => ({ acceptInvite: vi.fn() }));
 vi.mock("../session", () => ({ createSession: vi.fn(), deleteSession: vi.fn() }));
 vi.mock("../prisma", () => ({
   prisma: { user: { findUnique: vi.fn(), create: vi.fn() } },
@@ -112,7 +113,7 @@ describe("signup", () => {
 
     expect(vi.mocked(createSession)).toHaveBeenCalledWith(fakeUser.id);
     expect(vi.mocked(start)).toHaveBeenCalled();
-    expect(vi.mocked(redirect)).toHaveBeenCalledWith("/");
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith("/lists");
   });
 });
 
@@ -162,7 +163,7 @@ describe("login", () => {
 
     expect(vi.mocked(bcrypt.compare)).toHaveBeenCalledWith("Password1", fakeUser.hashedPassword);
     expect(vi.mocked(createSession)).toHaveBeenCalledWith(fakeUser.id);
-    expect(vi.mocked(redirect)).toHaveBeenCalledWith("/");
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith("/lists");
   });
 });
 
