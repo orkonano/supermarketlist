@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "code-review": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "skillPath": "engineering/skills/code-review/SKILL.md",
+      "computedHash": "919719020590499db120437b53defa7dcb05e138aa5ce9e55034b88dbad7fff8"
+    },
     "git-flow-branch-creator": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -10,6 +16,24 @@
       "source": "jeremylongshore/claude-code-plugins-plus-skills",
       "sourceType": "github",
       "computedHash": "23942154f7d87962bc72991e26833aa0991a7731a98ec5ad76aee137e91a4b96"
+    },
+    "next-best-practices": {
+      "source": "vercel-labs/next-skills",
+      "sourceType": "github",
+      "skillPath": "skills/next-best-practices/SKILL.md",
+      "computedHash": "f4678aef4ffc10a5ea64a91e57abe5a5081af813b06d58d565caf3e8ef56e26c"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "0a413bf988d06481f69bb81df2070741c3ba12dd9f1be2706d57f259c905992d"
+    },
+    "write-unit-tests": {
+      "source": "tldraw/tldraw",
+      "sourceType": "github",
+      "skillPath": "skills/write-unit-tests/SKILL.md",
+      "computedHash": "91d34c0f6e80cd713d53ffb8427538075ad6145bbc302113014467823a638073"
     }
   }
 }
