@@ -18,14 +18,14 @@ export default function RenameListForm({ listId, currentName }: { listId: string
         await updateList(listId, name);
         router.replace(`/lists/${listId}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setError(err instanceof Error ? err.message : "Algo salió mal.");
       }
     });
   }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Rename list</h2>
+      <h2 className="text-sm font-semibold text-gray-700 mb-3">Renombrar lista</h2>
       <form onSubmit={handleSubmit} className="flex gap-2">
         {error && <p className="text-xs text-red-600">{error}</p>}
         <input
@@ -40,14 +40,14 @@ export default function RenameListForm({ listId, currentName }: { listId: string
           onClick={() => router.replace(`/lists/${listId}`)}
           className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
         >
-          Cancel
+          Cancelar
         </button>
         <button
           type="submit"
           disabled={isPending}
           className="px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
         >
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? "Guardando…" : "Guardar"}
         </button>
       </form>
     </div>

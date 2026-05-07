@@ -42,14 +42,14 @@ async function sendInviteEmail(
 
   try {
     await transporter.sendMail({
-      from: `"Family Shopping List" <${user}>`,
+      from: `"Lista del Súper" <${user}>`,
       to: email,
-      subject: `${inviterName} invited you to "${listName}"`,
+      subject: `${inviterName} te invitó a "${listName}"`,
       html: `
-        <p>Hi there,</p>
-        <p><strong>${inviterName}</strong> has invited you to collaborate on the shopping list <strong>"${listName}"</strong>.</p>
-        <p><a href="${acceptUrl}">${userExists ? "Accept the invitation" : "Create an account and join"}</a></p>
-        <p>This link expires in 7 days.</p>
+        <p>¡Hola!</p>
+        <p><strong>${inviterName}</strong> te invitó a colaborar en la lista del súper <strong>"${listName}"</strong>.</p>
+        <p><a href="${acceptUrl}">${userExists ? "Aceptar la invitación" : "Crear una cuenta y unirse"}</a></p>
+        <p>Este enlace vence en 7 días.</p>
       `,
     });
   } catch (err) {

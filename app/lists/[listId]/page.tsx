@@ -46,26 +46,26 @@ export default async function ListPage({
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Link href="/lists" className="text-gray-400 hover:text-gray-600 transition-colors">
-              ← Lists
+              ← Listas
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{list.name}</h1>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className="text-sm text-gray-600">Hi, {user?.name}</span>
+            <span className="text-sm text-gray-600">Hola, {user?.name}</span>
             <div className="flex gap-3">
               <Link href={`/lists/${listId}/share`} className="text-xs text-blue-500 hover:underline">
-                Share
+                Compartir
               </Link>
               {isOwner && (
                 <Link href={`/lists/${listId}?edit=1`} className="text-xs text-gray-500 hover:underline">
-                  Rename
+                  Renombrar
                 </Link>
               )}
               <form action={logout} className="inline">
                 <button type="submit" className="text-xs text-gray-500 hover:text-red-600 underline transition-colors">
-                  Sign out
+                  Cerrar sesión
                 </button>
               </form>
             </div>
@@ -79,7 +79,7 @@ export default async function ListPage({
 
         {!user?.emailVerified && !sp.verified && (
           <div className="mb-6 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            Please check your email and click the verification link to confirm your account.
+            Revisá tu correo y hacé clic en el enlace de verificación para confirmar tu cuenta.
           </div>
         )}
 

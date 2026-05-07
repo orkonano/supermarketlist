@@ -16,7 +16,7 @@ export default function LoginForm({ inviteToken }: { inviteToken?: string }) {
       )}
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
         <input
           id="email" name="email" type="email" autoComplete="email" required
           className="w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-gray-900 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -25,7 +25,7 @@ export default function LoginForm({ inviteToken }: { inviteToken?: string }) {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
         <input
           id="password" name="password" type="password" autoComplete="current-password" required
           className="w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-gray-900 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -37,13 +37,13 @@ export default function LoginForm({ inviteToken }: { inviteToken?: string }) {
         type="submit" disabled={pending}
         className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors"
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? "Ingresando…" : "Ingresar"}
       </button>
 
       <p className="text-center text-sm text-gray-600">
-        Don&apos;t have an account?{" "}
+        ¿No tenés cuenta?{" "}
         <Link href={inviteToken ? `/signup?inviteToken=${encodeURIComponent(inviteToken)}` : "/signup"} className="text-blue-600 hover:underline font-medium">
-          Sign up
+          Registrate
         </Link>
       </p>
     </form>

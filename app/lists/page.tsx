@@ -23,15 +23,15 @@ export default async function ListsPage({
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Lists</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Mis listas</h1>
           <div className="flex flex-col items-end gap-1">
-            <span className="text-sm text-gray-600">Hi, {user?.name}</span>
+            <span className="text-sm text-gray-600">Hola, {user?.name}</span>
             <form action={logout}>
               <button
                 type="submit"
                 className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
               >
-                Sign out
+                Cerrar sesión
               </button>
             </form>
           </div>
@@ -57,10 +57,10 @@ export default async function ListsPage({
                   {list.name}
                 </Link>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {list._count.members} member{list._count.members !== 1 ? "s" : ""} ·{" "}
-                  {list._count.items} item{list._count.items !== 1 ? "s" : ""}
+                  {list._count.members} {list._count.members !== 1 ? "miembros" : "miembro"} ·{" "}
+                  {list._count.items} {list._count.items !== 1 ? "productos" : "producto"}
                   {list.ownerId !== session.userId && (
-                    <span className="ml-1">· owned by {list.owner.name}</span>
+                    <span className="ml-1">· de {list.owner.name}</span>
                   )}
                 </p>
               </div>
@@ -69,7 +69,7 @@ export default async function ListsPage({
                   href={`/lists/${list.id}/share`}
                   className="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded transition-colors"
                 >
-                  Share
+                  Compartir
                 </Link>
                 {list.ownerId === session.userId && (
                   <>
@@ -77,7 +77,7 @@ export default async function ListsPage({
                       href={`/lists/${list.id}?edit=1`}
                       className="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded transition-colors"
                     >
-                      Rename
+                      Renombrar
                     </Link>
                     <form
                       action={async () => {
@@ -89,7 +89,7 @@ export default async function ListsPage({
                         type="submit"
                         className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded transition-colors"
                       >
-                        Delete
+                        Eliminar
                       </button>
                     </form>
                   </>
@@ -101,8 +101,8 @@ export default async function ListsPage({
           {lists.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               <div className="text-4xl mb-3">📋</div>
-              <p className="text-lg">No lists yet.</p>
-              <p className="text-sm">Create your first list below!</p>
+              <p className="text-lg">Todavía no tenés listas.</p>
+              <p className="text-sm">¡Creá tu primera lista abajo!</p>
             </div>
           )}
         </div>
@@ -112,7 +112,7 @@ export default async function ListsPage({
           className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-2xl shadow-sm transition-colors"
         >
           <span className="text-xl">+</span>
-          New List
+          Nueva lista
         </Link>
       </div>
     </main>

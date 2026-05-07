@@ -7,13 +7,13 @@ import AddItemForm from "./AddItemForm";
 import ItemRow from "./ItemRow";
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
 const CATEGORIES = [
-  "Produce", "Dairy", "Meat", "Bakery", "Frozen",
-  "Pantry", "Beverages", "Household", "Personal Care", "Other",
+  "Frutas y Verduras", "Lácteos", "Carnes", "Panadería", "Congelados",
+  "Despensa", "Bebidas", "Limpieza", "Higiene Personal", "Otros",
 ];
 
 type Props = {
@@ -63,7 +63,7 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
         <button
           onClick={prevMonth}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="Previous month"
+          aria-label="Mes anterior"
         >
           &#8592;
         </button>
@@ -73,14 +73,14 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
           </div>
           {total > 0 && (
             <div className="text-sm text-gray-400">
-              {checked}/{total} items checked
+              {checked}/{total} productos marcados
             </div>
           )}
         </div>
         <button
           onClick={nextMonth}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="Next month"
+          aria-label="Mes siguiente"
         >
           &#8594;
         </button>
@@ -91,8 +91,8 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
       {total === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <div className="text-4xl mb-3">🛒</div>
-          <p className="text-lg">No items yet for this month.</p>
-          <p className="text-sm">Add your first item above!</p>
+          <p className="text-lg">Todavía no hay productos este mes.</p>
+          <p className="text-sm">¡Agregá el primero arriba!</p>
         </div>
       ) : (
         <div className="space-y-4">

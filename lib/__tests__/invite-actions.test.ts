@@ -53,7 +53,7 @@ describe("inviteToList", () => {
 
     const result = await inviteToList("list-1", "bob@example.com");
 
-    expect(result).toEqual({ error: "Only the list owner can invite people." });
+    expect(result).toEqual({ error: "Solo el propietario de la lista puede invitar personas." });
     expect(vi.mocked(start)).not.toHaveBeenCalled();
   });
 
@@ -62,13 +62,13 @@ describe("inviteToList", () => {
 
     const result = await inviteToList("list-1", "bob@example.com");
 
-    expect(result).toEqual({ error: "Only the list owner can invite people." });
+    expect(result).toEqual({ error: "Solo el propietario de la lista puede invitar personas." });
   });
 
   it("returns error for invalid email", async () => {
     const result = await inviteToList("list-1", "not-an-email");
 
-    expect(result).toEqual({ error: expect.stringContaining("valid email") });
+    expect(result).toEqual({ error: expect.stringContaining("correo electrónico válido") });
   });
 
   it("returns error when a pending invite already exists for the email", async () => {
@@ -77,7 +77,7 @@ describe("inviteToList", () => {
 
     const result = await inviteToList("list-1", "bob@example.com");
 
-    expect(result).toEqual({ error: "An invite has already been sent to this email." });
+    expect(result).toEqual({ error: "Ya se envió una invitación a este correo electrónico." });
   });
 
   it("returns error when the invitee is already a member", async () => {
@@ -88,7 +88,7 @@ describe("inviteToList", () => {
 
     const result = await inviteToList("list-1", "bob@example.com");
 
-    expect(result).toEqual({ error: "This user is already a member of the list." });
+    expect(result).toEqual({ error: "Este usuario ya es miembro de la lista." });
   });
 
   it("creates invite and starts workflow on success", async () => {
@@ -116,7 +116,7 @@ describe("acceptInvite", () => {
 
     const result = await acceptInvite("bad-token", "user-2");
 
-    expect(result).toEqual({ error: "Invalid invite link." });
+    expect(result).toEqual({ error: "El enlace de invitación es inválido." });
   });
 
   it("returns error for an expired invite", async () => {
@@ -127,7 +127,7 @@ describe("acceptInvite", () => {
 
     const result = await acceptInvite("fixed-token-hex", "user-2");
 
-    expect(result).toEqual({ error: "This invite has expired." });
+    expect(result).toEqual({ error: "Esta invitación expiró." });
   });
 
   it("is idempotent when the invite is already accepted", async () => {

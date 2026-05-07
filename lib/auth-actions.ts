@@ -24,7 +24,7 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return { errors: { email: ["An account with this email already exists."] } };
+    return { errors: { email: ["Ya existe una cuenta con este correo electrónico."] } };
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -59,12 +59,12 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    return { message: "Invalid email or password." };
+    return { message: "Correo electrónico o contraseña incorrectos." };
   }
 
   const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
   if (!passwordMatch) {
-    return { message: "Invalid email or password." };
+    return { message: "Correo electrónico o contraseña incorrectos." };
   }
 
   await createSession(user.id);

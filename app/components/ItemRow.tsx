@@ -36,7 +36,7 @@ export default function ItemRow({ item, listId }: { item: Item; listId: string }
             ? "bg-green-500 border-green-500"
             : "border-gray-300 hover:border-green-400"
         }`}
-        aria-label={item.checked ? "Uncheck item" : "Check item"}
+        aria-label={item.checked ? "Desmarcar producto" : "Marcar producto"}
       >
         {item.checked && CheckIcon}
       </button>
@@ -47,12 +47,12 @@ export default function ItemRow({ item, listId }: { item: Item; listId: string }
         {item.quantity && (
           <span className="ml-2 text-xs text-gray-400">{item.quantity}</span>
         )}
-        <div className="text-xs text-gray-400 mt-0.5">Added by {item.addedBy}</div>
+        <div className="text-xs text-gray-400 mt-0.5">Agregado por {item.addedBy}</div>
       </div>
       <button
         onClick={handleDelete}
         className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-red-400 transition-all"
-        aria-label="Delete item"
+        aria-label="Eliminar producto"
       >
         {DeleteIcon}
       </button>

@@ -43,14 +43,14 @@ async function sendVerificationEmail(email: string, name: string, token: string)
 
   try {
     await transporter.sendMail({
-      from: `"Family Shopping List" <${user}>`,
+      from: `"Lista del Súper" <${user}>`,
       to: email,
-      subject: "Verify your email address",
+      subject: "Verificá tu correo electrónico",
       html: `
-        <p>Hi ${name},</p>
-        <p>Click the link below to verify your email address:</p>
+        <p>Hola ${name},</p>
+        <p>Hacé clic en el siguiente enlace para verificar tu correo electrónico:</p>
         <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-        <p>This link will work as long as your account exists.</p>
+        <p>Este enlace es válido mientras tu cuenta exista.</p>
       `,
     });
   } catch (err) {
