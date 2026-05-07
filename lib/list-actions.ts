@@ -5,11 +5,11 @@ import { z } from "zod";
 import { prisma } from "./prisma";
 import { verifySession } from "./dal";
 
-const ListNameSchema = z.string().min(1, "Name is required.").max(100).trim();
+const ListNameSchema = z.string().min(1, "El nombre es obligatorio.").max(100).trim();
 
 async function assertOwner(listId: string, userId: string) {
   const list = await prisma.list.findUnique({ where: { id: listId } });
-  if (!list || list.ownerId !== userId) throw new Error("Not authorized.");
+  if (!list || list.ownerId !== userId) throw new Error("No tenés permiso para realizar esta acción.");
   return list;
 }
 
@@ -17,7 +17,7 @@ async function assertMember(listId: string, userId: string) {
   const member = await prisma.listMember.findUnique({
     where: { listId_userId: { listId, userId } },
   });
-  if (!member) throw new Error("Not authorized.");
+  if (!member) throw new Error("No tenés permiso para realizar esta acción.");
 }
 
 export async function createList(name: string) {

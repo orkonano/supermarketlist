@@ -15,7 +15,7 @@ describe("SignupFormSchema", () => {
     it("rejects a name with fewer than 2 characters", () => {
       const result = SignupFormSchema.safeParse(validSignup({ name: "J" }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "name")).toContain("Name must be at least 2 characters.");
+      expect(fieldErrors(result, "name")).toContain("El nombre debe tener al menos 2 caracteres.");
     });
 
     it("rejects an empty name", () => {
@@ -39,7 +39,7 @@ describe("SignupFormSchema", () => {
     it("rejects a missing @ sign", () => {
       const result = SignupFormSchema.safeParse(validSignup({ email: "notanemail" }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "email")).toContain("Please enter a valid email.");
+      expect(fieldErrors(result, "email")).toContain("Ingresá un correo electrónico válido.");
     });
 
     it("rejects a missing domain", () => {
@@ -55,7 +55,7 @@ describe("SignupFormSchema", () => {
     it("rejects email with surrounding whitespace (Zod v4: validators run before trim)", () => {
       const result = SignupFormSchema.safeParse(validSignup({ email: "  user@example.com  " }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "email")).toContain("Please enter a valid email.");
+      expect(fieldErrors(result, "email")).toContain("Ingresá un correo electrónico válido.");
     });
   });
 
@@ -68,7 +68,7 @@ describe("SignupFormSchema", () => {
     it("rejects a password shorter than 8 characters", () => {
       const result = SignupFormSchema.safeParse(validSignup({ password: "Pass1" }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "password")).toContain("Must be at least 8 characters.");
+      expect(fieldErrors(result, "password")).toContain("Debe tener al menos 8 caracteres.");
     });
 
     it("accepts a password of exactly 8 characters", () => {
@@ -79,13 +79,13 @@ describe("SignupFormSchema", () => {
     it("rejects a password with no letters", () => {
       const result = SignupFormSchema.safeParse(validSignup({ password: "12345678" }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "password")).toContain("Must contain at least one letter.");
+      expect(fieldErrors(result, "password")).toContain("Debe contener al menos una letra.");
     });
 
     it("rejects a password with no numbers", () => {
       const result = SignupFormSchema.safeParse(validSignup({ password: "PasswordOnly" }));
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "password")).toContain("Must contain at least one number.");
+      expect(fieldErrors(result, "password")).toContain("Debe contener al menos un número.");
     });
 
     it("rejects an empty password", () => {
@@ -98,9 +98,9 @@ describe("SignupFormSchema", () => {
       const result = SignupFormSchema.safeParse(validSignup({ password: "!!!!" }));
       expect(result.success).toBe(false);
       const errors = fieldErrors(result, "password");
-      expect(errors).toContain("Must be at least 8 characters.");
-      expect(errors).toContain("Must contain at least one letter.");
-      expect(errors).toContain("Must contain at least one number.");
+      expect(errors).toContain("Debe tener al menos 8 caracteres.");
+      expect(errors).toContain("Debe contener al menos una letra.");
+      expect(errors).toContain("Debe contener al menos un número.");
     });
 
     it("trims whitespace and returns the trimmed password", () => {
@@ -136,7 +136,7 @@ describe("LoginFormSchema", () => {
     it("rejects an invalid email", () => {
       const result = LoginFormSchema.safeParse({ email: "notvalid", password: "any" });
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "email")).toContain("Please enter a valid email.");
+      expect(fieldErrors(result, "email")).toContain("Ingresá un correo electrónico válido.");
     });
 
     it("rejects an empty email", () => {
@@ -147,7 +147,7 @@ describe("LoginFormSchema", () => {
     it("rejects email with surrounding whitespace (Zod v4: validators run before trim)", () => {
       const result = LoginFormSchema.safeParse({ email: "  user@example.com  ", password: "any" });
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "email")).toContain("Please enter a valid email.");
+      expect(fieldErrors(result, "email")).toContain("Ingresá un correo electrónico válido.");
     });
   });
 
@@ -160,7 +160,7 @@ describe("LoginFormSchema", () => {
     it("rejects an empty password", () => {
       const result = LoginFormSchema.safeParse({ email: "user@example.com", password: "" });
       expect(result.success).toBe(false);
-      expect(fieldErrors(result, "password")).toContain("Password is required.");
+      expect(fieldErrors(result, "password")).toContain("La contraseña es obligatoria.");
     });
 
     it("accepts a whitespace-only password (Zod v4: min(1) checks untrimmed length)", () => {

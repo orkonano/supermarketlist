@@ -8,7 +8,7 @@ import { verifySession } from "./dal";
 import { start } from "workflow/api";
 import { listInviteWorkflow } from "@/workflows/list-invite";
 
-const EmailSchema = z.string().email("Please enter a valid email.");
+const EmailSchema = z.string().email("Ingresá un correo electrónico válido.");
 
 export type InviteResult =
   | { success: true }
@@ -21,19 +21,19 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const list = await prisma.list.findUnique({ where: { id: listId }, select: { ownerId: true } });
-  if (!list || list.ownerId !== session.userId) return { error: "Only the list owner can invite people." };
+  if (!list || list.ownerId !== session.userId) return { error: "Solo el propietario de la lista puede invitar personas." };
 
   const existing = await prisma.listInvite.findFirst({
     where: { listId, email, accepted: false },
   });
-  if (existing) return { error: "An invite has already been sent to this email." };
+  if (existing) return { error: "Ya se envió una invitación a este correo electrónico." };
 
   const invitee = await prisma.user.findUnique({ where: { email } });
   if (invitee) {
     const alreadyMember = await prisma.listMember.findUnique({
       where: { listId_userId: { listId, userId: invitee.id } },
     });
-    if (alreadyMember) return { error: "This user is already a member of the list." };
+    if (alreadyMember) return { error: "Este usuario ya es miembro de la lista." };
   }
 
   const token = randomBytes(32).toString("hex");
@@ -56,8 +56,8 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
 
 export async function acceptInvite(token: string, userId: string): Promise<{ listId: string } | { error: string }> {
   const invite = await prisma.listInvite.findUnique({ where: { token } });
-  if (!invite) return { error: "Invalid invite link." };
-  if (invite.expiresAt < new Date()) return { error: "This invite has expired." };
+  if (!invite) return { error: "El enlace de invitación es inválido." };
+  if (invite.expiresAt < new Date()) return { error: "Esta invitación expiró." };
 
   if (invite.accepted) return { listId: invite.listId };
 

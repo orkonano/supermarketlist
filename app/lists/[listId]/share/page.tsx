@@ -40,26 +40,26 @@ export default async function SharePage({
           <Link href={`/lists/${listId}`} className="text-gray-400 hover:text-gray-600 transition-colors">
             ← {list.name}
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Share</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Compartir</h1>
         </div>
 
         {isOwner && (
           <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Invite by email</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Invitar por correo electrónico</h2>
             <ShareForm listId={listId} />
           </div>
         )}
 
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Members ({list.members.length})
+            Miembros ({list.members.length})
           </h2>
           <ul className="space-y-2">
             {list.members.map((m) => (
               <li key={m.userId} className="flex items-center justify-between text-sm">
                 <span className="text-gray-800">{m.user.name}</span>
                 <span className="text-gray-400 text-xs">
-                  {m.userId === list.ownerId ? "owner" : m.user.email}
+                  {m.userId === list.ownerId ? "propietario" : m.user.email}
                 </span>
               </li>
             ))}
@@ -69,14 +69,14 @@ export default async function SharePage({
         {list.invites.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-5">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              Pending invites ({list.invites.length})
+              Invitaciones pendientes ({list.invites.length})
             </h2>
             <ul className="space-y-2">
               {list.invites.map((inv) => (
                 <li key={inv.id} className="text-sm text-gray-500">
                   {inv.email}
                   <span className="ml-2 text-xs text-gray-300">
-                    expires {new Date(inv.expiresAt).toLocaleDateString()}
+                    vence {new Date(inv.expiresAt).toLocaleDateString("es-AR")}
                   </span>
                 </li>
               ))}

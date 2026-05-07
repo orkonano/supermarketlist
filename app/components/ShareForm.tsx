@@ -16,7 +16,7 @@ export default function ShareForm({ listId }: { listId: string }) {
       if ("error" in result) {
         setMessage({ text: result.error, ok: false });
       } else {
-        setMessage({ text: "Invite sent!", ok: true });
+        setMessage({ text: "¡Invitación enviada!", ok: true });
         (e.target as HTMLFormElement).reset();
       }
     });
@@ -36,7 +36,7 @@ export default function ShareForm({ listId }: { listId: string }) {
         disabled={isPending}
         className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
       >
-        {isPending ? "Sending…" : "Invite"}
+        {isPending ? "Enviando…" : "Invitar"}
       </button>
       {message && (
         <p className={`text-xs mt-2 ${message.ok ? "text-green-600" : "text-red-600"}`}>

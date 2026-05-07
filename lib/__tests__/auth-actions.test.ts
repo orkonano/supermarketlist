@@ -72,7 +72,7 @@ describe("signup", () => {
 
     const result = await signup(undefined, fd(validSignupFields));
 
-    expect(result?.errors?.email).toContain("An account with this email already exists.");
+    expect(result?.errors?.email).toContain("Ya existe una cuenta con este correo electrónico.");
     expect(vi.mocked(prisma.user.create)).not.toHaveBeenCalled();
   });
 
@@ -141,7 +141,7 @@ describe("login", () => {
 
     const result = await login(undefined, fd(validLoginFields));
 
-    expect(result?.message).toBe("Invalid email or password.");
+    expect(result?.message).toBe("Correo electrónico o contraseña incorrectos.");
     expect(vi.mocked(createSession)).not.toHaveBeenCalled();
   });
 
@@ -151,7 +151,7 @@ describe("login", () => {
 
     const result = await login(undefined, fd(validLoginFields));
 
-    expect(result?.message).toBe("Invalid email or password.");
+    expect(result?.message).toBe("Correo electrónico o contraseña incorrectos.");
     expect(vi.mocked(createSession)).not.toHaveBeenCalled();
   });
 

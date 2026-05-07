@@ -87,7 +87,7 @@ describe("updateList", () => {
   it("throws when called by a non-owner", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue({ ...fakeList, ownerId: "other-user" });
 
-    await expect(updateList("list-1", "Renamed")).rejects.toThrow("Not authorized.");
+    await expect(updateList("list-1", "Renamed")).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
 });
 
@@ -107,13 +107,13 @@ describe("deleteList", () => {
   it("throws when called by a non-owner", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue({ ...fakeList, ownerId: "other-user" });
 
-    await expect(deleteList("list-1")).rejects.toThrow("Not authorized.");
+    await expect(deleteList("list-1")).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
 
   it("throws when the list does not exist", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue(null);
 
-    await expect(deleteList("list-1")).rejects.toThrow("Not authorized.");
+    await expect(deleteList("list-1")).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
 });
 
@@ -154,7 +154,7 @@ describe("getListItems", () => {
   it("throws when the user is not a member", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
 
-    await expect(getListItems("list-1", 5, 2026)).rejects.toThrow("Not authorized.");
+    await expect(getListItems("list-1", 5, 2026)).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
 });
 
@@ -190,6 +190,6 @@ describe("addListItem", () => {
     fd.set("month", "5");
     fd.set("year", "2026");
 
-    await expect(addListItem("list-1", fd)).rejects.toThrow("Not authorized.");
+    await expect(addListItem("list-1", fd)).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
 });
