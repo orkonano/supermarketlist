@@ -91,3 +91,33 @@ After installing or removing packages, run:
 npm install
 git add package-lock.json
 ```
+
+## Locale — Spanish (Argentino) with vos
+
+All customer-facing UI, error messages, validation text, and emails must be in **Argentine Spanish** using the **vos** register. Never use tuteo or neutral Spanish.
+
+Key forms:
+- "Iniciá sesión" (not "Inicia sesión")
+- "Creá tu cuenta" (not "Crea tu cuenta")
+- "Hacé clic" (not "Haz clic")
+- "Revisá tu correo" (not "Revisa tu correo")
+- "Tenés" / "No tenés" (not "Tienes")
+- "Registrate" (not "Regístrate")
+
+Apply this to any new string from the start — do not write it in English or neutral Spanish first.
+
+## Error surfacing pattern
+
+When a server action fails during a flow that ends in a redirect, surface the error via:
+
+```ts
+redirect(`/lists?error=${encodeURIComponent(message)}`);
+```
+
+The `/lists` page already reads `searchParams.error` and renders a red banner — no additional UI work is needed. Check the destination page first; if it does not handle `params.error`, add the banner there too.
+
+## Security: guards belong inside the function
+
+Authorization and validation checks must live **inside the function** being protected, not only at the call site that triggered the need. A callee should be safe regardless of who calls it.
+
+Ask: "can a different call site skip this check?" If yes, move the guard into the callee. This prevents future call sites from bypassing security by omission.
