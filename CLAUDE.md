@@ -115,9 +115,3 @@ redirect(`/lists?error=${encodeURIComponent(message)}`);
 ```
 
 The `/lists` page already reads `searchParams.error` and renders a red banner — no additional UI work is needed. Check the destination page first; if it does not handle `params.error`, add the banner there too.
-
-## Security: guards belong inside the function
-
-Authorization and validation checks must live **inside the function** being protected, not only at the call site that triggered the need. A callee should be safe regardless of who calls it.
-
-Ask: "can a different call site skip this check?" If yes, move the guard into the callee. This prevents future call sites from bypassing security by omission.
