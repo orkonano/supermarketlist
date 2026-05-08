@@ -59,6 +59,9 @@ export async function acceptInvite(token: string, userId: string): Promise<{ lis
   if (!invite) return { error: "El enlace de invitación es inválido." };
   if (invite.expiresAt < new Date()) return { error: "Esta invitación expiró." };
 
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user || user.email !== invite.email) return { error: "Esta invitación no corresponde a tu correo electrónico." };
+
   if (invite.accepted) return { listId: invite.listId };
 
   try {
