@@ -22,6 +22,7 @@ import { inviteToList, acceptInvite } from "../invite-actions";
 import { verifySession } from "../dal";
 import { prisma } from "../prisma";
 import { start } from "workflow/api";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 const SESSION = { isAuth: true as const, userId: "user-1" };
 
@@ -159,5 +160,28 @@ describe("acceptInvite", () => {
 
     expect(result).toEqual({ listId: "list-1" });
     expect(vi.mocked(prisma.$transaction)).toHaveBeenCalled();
+  });
+
+  it("swallows P2002 and returns listId when member already exists", async () => {
+    vi.mocked(prisma.listInvite.findUnique).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", email: "bob@example.com" } as never);
+    const p2002 = new PrismaClientKnownRequestError("Unique constraint failed", {
+      code: "P2002",
+      clientVersion: "6.0.0",
+    });
+    vi.mocked(prisma.$transaction).mockRejectedValue(p2002);
+
+    const result = await acceptInvite("fixed-token-hex", "user-2");
+
+    expect(result).toEqual({ listId: "list-1" });
+  });
+
+  it("propagates non-P2002 transaction errors", async () => {
+    vi.mocked(prisma.listInvite.findUnique).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", email: "bob@example.com" } as never);
+    const networkError = new Error("Connection timeout");
+    vi.mocked(prisma.$transaction).mockRejectedValue(networkError);
+
+    await expect(acceptInvite("fixed-token-hex", "user-2")).rejects.toThrow("Connection timeout");
   });
 });
