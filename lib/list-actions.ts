@@ -113,7 +113,7 @@ export async function toggleListItem(listId: string, id: string, checked: boolea
   const session = await verifySession();
   await assertMember(listId, session.userId);
 
-  await prisma.item.update({ where: { id }, data: { checked } });
+  await prisma.item.update({ where: { id, listId }, data: { checked } });
   revalidatePath(`/lists/${listId}`);
 }
 
@@ -121,6 +121,6 @@ export async function deleteListItem(listId: string, id: string) {
   const session = await verifySession();
   await assertMember(listId, session.userId);
 
-  await prisma.item.delete({ where: { id } });
+  await prisma.item.delete({ where: { id, listId } });
   revalidatePath(`/lists/${listId}`);
 }
