@@ -16,6 +16,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../prisma";
 import { createSession, deleteSession } from "../session";
 import { start } from "workflow/api";
+import { acceptInvite } from "../invite-actions";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -114,6 +115,30 @@ describe("signup", () => {
     expect(vi.mocked(createSession)).toHaveBeenCalledWith(fakeUser.id);
     expect(vi.mocked(start)).toHaveBeenCalled();
     expect(vi.mocked(redirect)).toHaveBeenCalledWith("/lists");
+  });
+
+  it("redirects to the list when signup includes a valid invite token", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(bcrypt.hash).mockResolvedValue("hashed-pw" as never);
+    vi.mocked(prisma.user.create).mockResolvedValue(fakeUser);
+    vi.mocked(acceptInvite).mockResolvedValue({ listId: "list-1" });
+
+    await signup(undefined, fd({ ...validSignupFields, inviteToken: "valid-tok" }));
+
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith("/lists/list-1");
+  });
+
+  it("redirects to /lists with the error message when the invite token is rejected", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(bcrypt.hash).mockResolvedValue("hashed-pw" as never);
+    vi.mocked(prisma.user.create).mockResolvedValue(fakeUser);
+    vi.mocked(acceptInvite).mockResolvedValue({ error: "Esta invitación no corresponde a tu correo electrónico." });
+
+    await signup(undefined, fd({ ...validSignupFields, inviteToken: "bad-tok" }));
+
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith(
+      `/lists?error=${encodeURIComponent("Esta invitación no corresponde a tu correo electrónico.")}`
+    );
   });
 });
 

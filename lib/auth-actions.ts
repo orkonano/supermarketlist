@@ -40,6 +40,7 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
   if (inviteToken) {
     const result = await acceptInvite(inviteToken, user.id);
     if ("listId" in result) redirect(`/lists/${result.listId}`);
+    redirect(`/lists?error=${encodeURIComponent(result.error)}`);
   }
 
   redirect("/lists");

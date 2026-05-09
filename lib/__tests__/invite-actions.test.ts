@@ -130,8 +130,19 @@ describe("acceptInvite", () => {
     expect(result).toEqual({ error: "Esta invitación expiró." });
   });
 
+  it("returns error when the user email does not match the invite email", async () => {
+    vi.mocked(prisma.listInvite.findUnique).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", email: "different@example.com" } as never);
+
+    const result = await acceptInvite("fixed-token-hex", "user-2");
+
+    expect(result).toEqual({ error: "Esta invitación no corresponde a tu correo electrónico." });
+    expect(vi.mocked(prisma.$transaction)).not.toHaveBeenCalled();
+  });
+
   it("is idempotent when the invite is already accepted", async () => {
     vi.mocked(prisma.listInvite.findUnique).mockResolvedValue({ ...fakeInvite, accepted: true });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", email: "bob@example.com" } as never);
 
     const result = await acceptInvite("fixed-token-hex", "user-2");
 
@@ -141,6 +152,7 @@ describe("acceptInvite", () => {
 
   it("adds the user as a member and marks invite accepted on success", async () => {
     vi.mocked(prisma.listInvite.findUnique).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-2", email: "bob@example.com" } as never);
     vi.mocked(prisma.$transaction).mockResolvedValue([]);
 
     const result = await acceptInvite("fixed-token-hex", "user-2");
