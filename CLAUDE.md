@@ -42,6 +42,16 @@ INSERT INTO "NewTable" (...) SELECT ... FROM "OldTable";
 PRAGMA defer_foreign_keys=ON; ...
 ```
 
+## Auth middleware
+
+The auth/routing middleware lives in **`proxy.ts`** (repo root), not `middleware.ts`. The `withWorkflow` wrapper in `next.config.ts` registers it automatically.
+
+`proxy.ts` controls two arrays:
+- `protectedRoutes` — unauthenticated visitors are redirected to `/login`
+- `publicRoutes` — authenticated users are redirected to `/lists`
+
+When adding or changing a route, update these arrays accordingly. Public-facing pages (e.g. the landing page `/`) must be in `publicRoutes`, not `protectedRoutes`.
+
 ## Git commit signing (GPG)
 
 This repo uses GPG-signed commits. In every new terminal session, run this before committing:

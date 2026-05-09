@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 
-const protectedRoutes = ["/"];
-const publicRoutes = ["/login", "/signup"];
+const protectedRoutes: string[] = [];
+const publicRoutes = ["/", "/login", "/signup"];
 
 export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -18,7 +18,7 @@ export default async function proxy(req: NextRequest) {
   }
 
   if (isPublicRoute && session?.userId) {
-    return NextResponse.redirect(new URL("/", req.nextUrl));
+    return NextResponse.redirect(new URL("/lists", req.nextUrl));
   }
 
   return NextResponse.next();
