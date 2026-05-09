@@ -3,6 +3,7 @@
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { prisma } from "./prisma";
 import { verifySession } from "./dal";
 import { start } from "workflow/api";
@@ -69,8 +70,10 @@ export async function acceptInvite(token: string, userId: string): Promise<{ lis
       prisma.listMember.create({ data: { listId: invite.listId, userId } }),
       prisma.listInvite.update({ where: { id: invite.id }, data: { accepted: true } }),
     ]);
-  } catch {
-    // Member already exists — idempotent
+  } catch (err) {
+    if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) {
+      throw err;
+    }
   }
 
   revalidatePath("/lists");
