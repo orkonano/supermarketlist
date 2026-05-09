@@ -10,7 +10,7 @@ vi.mock("../prisma", () => ({
   },
 }));
 
-import { createList, updateList, deleteList, getUserLists, getListItems, addListItem } from "../list-actions";
+import { createList, updateList, deleteList, getUserLists, getListItems, addListItem, toggleListItem, deleteListItem } from "../list-actions";
 import { verifySession } from "../dal";
 import { prisma } from "../prisma";
 
@@ -191,5 +191,69 @@ describe("addListItem", () => {
     fd.set("year", "2026");
 
     await expect(addListItem("list-1", fd)).rejects.toThrow("No tenés permiso para realizar esta acción.");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toggleListItem
+// ---------------------------------------------------------------------------
+
+describe("toggleListItem", () => {
+  it("calls update with compound where { id, listId }", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    vi.mocked(prisma.item.update).mockResolvedValue({ ...fakeItem, checked: true });
+
+    await toggleListItem("list-1", "item-1", true);
+
+    expect(vi.mocked(prisma.item.update)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "item-1", listId: "list-1" } })
+    );
+  });
+
+  it("throws when the user is not a member", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+
+    await expect(toggleListItem("list-1", "item-1", true)).rejects.toThrow("No tenés permiso para realizar esta acción.");
+    expect(vi.mocked(prisma.item.update)).not.toHaveBeenCalled();
+  });
+
+  it("propagates P2025 when the item belongs to a different list", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    const p2025 = Object.assign(new Error("Record not found"), { code: "P2025" });
+    vi.mocked(prisma.item.update).mockRejectedValue(p2025);
+
+    await expect(toggleListItem("list-1", "item-from-list-2", true)).rejects.toMatchObject({ code: "P2025" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteListItem
+// ---------------------------------------------------------------------------
+
+describe("deleteListItem", () => {
+  it("calls delete with compound where { id, listId }", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    vi.mocked(prisma.item.delete).mockResolvedValue(fakeItem);
+
+    await deleteListItem("list-1", "item-1");
+
+    expect(vi.mocked(prisma.item.delete)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "item-1", listId: "list-1" } })
+    );
+  });
+
+  it("throws when the user is not a member", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+
+    await expect(deleteListItem("list-1", "item-1")).rejects.toThrow("No tenés permiso para realizar esta acción.");
+    expect(vi.mocked(prisma.item.delete)).not.toHaveBeenCalled();
+  });
+
+  it("propagates P2025 when the item belongs to a different list", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+    const p2025 = Object.assign(new Error("Record not found"), { code: "P2025" });
+    vi.mocked(prisma.item.delete).mockRejectedValue(p2025);
+
+    await expect(deleteListItem("list-1", "item-from-list-2")).rejects.toMatchObject({ code: "P2025" });
   });
 });
