@@ -116,6 +116,18 @@ Key forms:
 
 Apply this to any new string from the start — do not write it in English or neutral Spanish first.
 
+## Testing
+
+Run `npm test` after every change — no exceptions.
+
+When adding a new feature, add tests for it in the same PR. Tests live in `lib/__tests__/` and follow the existing vitest + mock pattern.
+
+When existing tests fail after a change, determine the cause before touching anything:
+- **Regression** — the change broke behaviour that should still work. Fix the code, not the test.
+- **Intentional behaviour change** — the feature was deliberately altered and the test no longer reflects the new contract. Update the test to match the new behaviour and add a comment explaining what changed and why.
+
+Never delete or skip a failing test to make CI green without understanding why it failed.
+
 ## Error surfacing pattern
 
 When a server action fails during a flow that ends in a redirect, surface the error via:
