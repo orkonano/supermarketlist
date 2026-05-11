@@ -2,6 +2,12 @@ import Link from "next/link";
 
 const features = [
   {
+    icon: "💰",
+    title: "Comparación de precios",
+    description:
+      "Compará automáticamente los precios de tu lista en Coto, Disco y Carrefour. El total más barato se destaca en verde.",
+  },
+  {
     icon: "📋",
     title: "Múltiples listas",
     description:
@@ -112,6 +118,35 @@ export default function LandingPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Price comparison highlight */}
+      <section className="bg-green-50 px-4 py-16">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="text-5xl mb-4">💰</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            ¿Dónde conviene hacer el super?
+          </h2>
+          <p className="text-gray-600 mb-8 leading-relaxed max-w-xl mx-auto">
+            Agregás los productos a tu lista y la app busca automáticamente los precios en{" "}
+            <span className="font-semibold text-gray-800">Coto</span>,{" "}
+            <span className="font-semibold text-gray-800">Disco</span> y{" "}
+            <span className="font-semibold text-gray-800">Carrefour</span>.
+            El total más barato se resalta en verde para que sepas dónde conviene ir.
+          </p>
+          <div className="grid sm:grid-cols-3 gap-4 text-left">
+            {[
+              { label: "Por producto", desc: "Ves cuál super tiene el mejor precio para cada ítem de la lista." },
+              { label: "Total estimado", desc: "Compará el gasto total en cada cadena de una sola mirada." },
+              { label: "Caché de 4 horas", desc: "Los precios se actualizan automáticamente; no vas a estar viendo datos viejos." },
+            ].map(({ label, desc }) => (
+              <div key={label} className="bg-white rounded-2xl shadow-sm p-5">
+                <h3 className="font-semibold text-gray-900 mb-1">{label}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

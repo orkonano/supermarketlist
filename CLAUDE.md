@@ -1,5 +1,17 @@
 @AGENTS.md
 
+## Git Flow — branch first, always
+
+**Before touching any file**, check the current branch:
+
+```bash
+git branch --show-current
+```
+
+If the result is `main`, invoke the `git-flow-branch-creator` skill immediately and switch to the appropriate branch. Only then begin reading or editing files.
+
+This applies to every task — features, fixes, docs, README updates, landing page tweaks. No exceptions.
+
 ## Database
 
 This project uses **SQLite locally** and **Turso (libSQL) in production**.
