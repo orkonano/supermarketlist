@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import type { Item } from "@/app/generated/prisma/client";
 import AddItemForm from "./AddItemForm";
 import ItemRow from "./ItemRow";
+import PriceComparison from "./PriceComparison";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -95,22 +96,26 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
           <p className="text-sm">¡Agregá el primero arriba!</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {Object.entries(grouped).map(([category, catItems]) => (
-            <div key={category} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {category}
-                </span>
+        <>
+          <div className="space-y-4">
+            {Object.entries(grouped).map(([category, catItems]) => (
+              <div key={category} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {category}
+                  </span>
+                </div>
+                <ul className="divide-y divide-gray-50">
+                  {catItems.map((item) => (
+                    <ItemRow key={item.id} item={item} listId={listId} />
+                  ))}
+                </ul>
               </div>
-              <ul className="divide-y divide-gray-50">
-                {catItems.map((item) => (
-                  <ItemRow key={item.id} item={item} listId={listId} />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <PriceComparison listId={listId} items={items} />
+        </>
       )}
     </div>
   );
