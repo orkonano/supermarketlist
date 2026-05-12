@@ -18,8 +18,12 @@ export default async function ListPage({
   const { listId } = await params;
   const sp = await searchParams;
   const now = new Date();
-  const month = sp.month ? parseInt(sp.month) : now.getMonth() + 1;
-  const year = sp.year ? parseInt(sp.year) : now.getFullYear();
+  const nowMonth = now.getMonth() + 1;
+  const nowYear = now.getFullYear();
+  const parsedMonth = sp.month ? parseInt(sp.month, 10) : nowMonth;
+  const parsedYear = sp.year ? parseInt(sp.year, 10) : nowYear;
+  const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : nowMonth;
+  const year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : nowYear;
 
   const session = await verifySession();
 
@@ -32,11 +36,10 @@ export default async function ListPage({
       where: { id: session.userId },
       select: { name: true, emailVerified: true },
     }),
-    getListItems(listId, month, year).catch(() => null),
+    getListItems(listId, month, year),
   ]);
 
   if (!list || list.members.length === 0) notFound();
-  if (!items) notFound();
 
   const isOwner = list.ownerId === session.userId;
 
