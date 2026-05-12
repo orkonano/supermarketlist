@@ -4,6 +4,7 @@ A collaborative monthly shopping list for families. Organize your grocery runs b
 
 ## Features
 
+- **Price comparison** — automatically fetches prices from Coto, Disco, and Carrefour for every item on your list; cheapest total is highlighted in green; results are cached per query for 4 hours to minimise external API calls
 - **Monthly lists** — items are stored per month/year; navigate forward and backward to see purchase history
 - **Categories** — Frutas y Verduras, Lácteos, Carnes, Panadería, Congelados, Despensa, Bebidas, Limpieza, Higiene Personal
 - **Check off items** — mark products as purchased as you shop; see progress at a glance
@@ -124,10 +125,12 @@ lib/
   auth-actions.ts  # Login, signup, logout server actions
   list-actions.ts  # CRUD for lists and items
   invite-actions.ts# Email invite flow
+  price-actions.ts # getItemPrices server action (auth guard + cache + fan-out)
+  price-adapters.ts# vtexAdapter (Disco/Carrefour) and cotoAdapter (Coto)
   session.ts       # JWT session helpers
   dal.ts           # Data access layer (verifySession, etc.)
 prisma/
-  schema.prisma    # Data models: User, List, ListMember, ListInvite, Item
+  schema.prisma    # Data models: User, List, ListMember, ListInvite, Item, PriceCache
 scripts/
   migrate-turso.ts # Custom Turso migration runner
 workflows/
