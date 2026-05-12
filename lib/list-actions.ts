@@ -89,8 +89,11 @@ export async function addListItem(listId: string, formData: FormData) {
   const quantity = formData.get("quantity") as string;
   const category = formData.get("category") as string;
   const addedBy = formData.get("addedBy") as string;
-  const month = parseInt(formData.get("month") as string);
-  const year = parseInt(formData.get("year") as string);
+  const now = new Date();
+  const rawMonth = parseInt(formData.get("month") as string, 10);
+  const rawYear = parseInt(formData.get("year") as string, 10);
+  const month = Number.isInteger(rawMonth) && rawMonth >= 1 && rawMonth <= 12 ? rawMonth : now.getMonth() + 1;
+  const year = Number.isInteger(rawYear) && rawYear >= 2000 && rawYear <= 2100 ? rawYear : now.getFullYear();
 
   if (!name?.trim() || !addedBy?.trim()) return;
 

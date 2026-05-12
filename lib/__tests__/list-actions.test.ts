@@ -176,7 +176,51 @@ describe("addListItem", () => {
 
     expect(vi.mocked(prisma.item.create)).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ name: "Eggs", listId: "list-1" }),
+        data: expect.objectContaining({ name: "Eggs", listId: "list-1", month: 5, year: 2026 }),
+      })
+    );
+  });
+
+  it("falls back to current month/year when month/year are NaN", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+
+    const fd = new FormData();
+    fd.set("name", "Eggs");
+    fd.set("addedBy", "Alice");
+    fd.set("month", "abc");
+    fd.set("year", "xyz");
+
+    await addListItem("list-1", fd);
+
+    const now = new Date();
+    expect(vi.mocked(prisma.item.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+        }),
+      })
+    );
+  });
+
+  it("falls back to current month/year when month is out of range", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
+
+    const fd = new FormData();
+    fd.set("name", "Eggs");
+    fd.set("addedBy", "Alice");
+    fd.set("month", "13");
+    fd.set("year", "1999");
+
+    await addListItem("list-1", fd);
+
+    const now = new Date();
+    expect(vi.mocked(prisma.item.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+        }),
       })
     );
   });
