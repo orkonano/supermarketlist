@@ -30,6 +30,7 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   if (existing) return { error: "Ya se envió una invitación a este correo electrónico." };
 
   const invitee = await prisma.user.findUnique({ where: { email } });
+  if (invitee && invitee.id === session.userId) return { error: "No podés invitarte a vos mismo." };
   if (invitee) {
     const alreadyMember = await prisma.listMember.findUnique({
       where: { listId_userId: { listId, userId: invitee.id } },
@@ -49,7 +50,9 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
     prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
   ]);
 
-  await start(listInviteWorkflow, [email, inviter!.name, listDetails!.name, token, !!invitee]);
+  if (!listDetails || !inviter) throw new Error("Lista o usuario eliminado durante la invitación.");
+
+  await start(listInviteWorkflow, [email, inviter.name, listDetails.name, token, !!invitee]);
 
   revalidatePath(`/lists/${listId}/share`);
   return { success: true };
