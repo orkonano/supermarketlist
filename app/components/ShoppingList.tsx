@@ -29,7 +29,7 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
   const [, startTransition] = useTransition();
 
   const grouped = CATEGORIES.reduce<Record<string, Item[]>>((acc, cat) => {
-    const catItems = items.filter((i) => (i.category || "Other") === cat);
+    const catItems = items.filter((i) => (i.category || "Otros") === cat);
     if (catItems.length > 0) acc[cat] = catItems;
     return acc;
   }, {});
@@ -37,7 +37,7 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
   const uncategorized = items.filter(
     (i) => !i.category || !CATEGORIES.includes(i.category)
   );
-  if (uncategorized.length > 0) grouped["Other"] = uncategorized;
+  if (uncategorized.length > 0) grouped["Otros"] = uncategorized;
 
   function navigate(m: number, y: number) {
     startTransition(() => {
