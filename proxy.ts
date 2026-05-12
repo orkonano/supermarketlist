@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decrypt } from "@/lib/session";
+import { decrypt, encrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 
 const protectedRoutes: string[] = [];
@@ -21,7 +21,21 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/lists", req.nextUrl));
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+
+  if (session?.userId && cookie) {
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const refreshed = await encrypt({ userId: session.userId, expiresAt: newExpiry });
+    res.cookies.set("session", refreshed, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      expires: newExpiry,
+      sameSite: "lax",
+      path: "/",
+    });
+  }
+
+  return res;
 }
 
 export const config = {

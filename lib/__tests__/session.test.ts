@@ -1,4 +1,4 @@
-import { vi, describe, it, expect } from "vitest";
+import { vi, describe, it, expect, afterEach } from "vitest";
 import { SignJWT } from "jose";
 
 // server-only throws outside a Next.js server context; next/headers requires
@@ -10,6 +10,25 @@ import { encrypt, decrypt } from "../session";
 
 // The key session.ts derives at import time from SESSION_SECRET (set in vitest.setup.ts).
 const testKey = new TextEncoder().encode(process.env.SESSION_SECRET);
+
+// ---------------------------------------------------------------------------
+// SESSION_SECRET startup assertion
+// ---------------------------------------------------------------------------
+
+describe("SESSION_SECRET guard", () => {
+  afterEach(() => {
+    vi.resetModules();
+    process.env.SESSION_SECRET = "test-secret-key-for-vitest-session!!";
+  });
+
+  it("throws at import time when SESSION_SECRET is not set", async () => {
+    delete process.env.SESSION_SECRET;
+    vi.resetModules();
+    vi.doMock("server-only", () => ({}));
+    vi.doMock("next/headers", () => ({ cookies: vi.fn() }));
+    await expect(import("../session")).rejects.toThrow("SESSION_SECRET is not set");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // encrypt / decrypt
