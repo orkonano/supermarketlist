@@ -49,7 +49,7 @@ export default async function ApiKeysPage({
               if ("error" in result) {
                 // Surface error via redirect pattern used throughout the app
                 const { redirect } = await import("next/navigation");
-                redirect(`/settings/api-keys?error=${encodeURIComponent(result.error)}`);
+                redirect(`/settings/api-keys?error=${encodeURIComponent(result.error ?? "")}`);
               }
               // After creation, redirect with the raw key to display once
               const { redirect } = await import("next/navigation");
