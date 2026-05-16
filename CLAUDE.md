@@ -132,6 +132,8 @@ Apply this to any new string from the start — do not write it in English or ne
 
 Run `npm test` after every change — no exceptions.
 
+Also run `npx tsc --noEmit` before every push. Vitest runs code but does not type-check it, so type errors that would fail the Vercel build (e.g. `string | undefined` passed to `encodeURIComponent`) pass tests locally without complaint.
+
 When adding a new feature, add tests for it in the same PR. Tests live in `lib/__tests__/` and follow the existing vitest + mock pattern.
 
 When existing tests fail after a change, determine the cause before touching anything:
