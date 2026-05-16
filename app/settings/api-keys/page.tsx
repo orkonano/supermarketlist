@@ -53,7 +53,7 @@ export default async function ApiKeysPage({
               }
               // After creation, redirect with the raw key to display once
               const { redirect } = await import("next/navigation");
-              redirect(`/settings/api-keys?created=${encodeURIComponent(result.key)}`);
+              redirect(`/settings/api-keys?created=${encodeURIComponent(result.key ?? "")}`);
             }}
             className="flex gap-3"
           >
