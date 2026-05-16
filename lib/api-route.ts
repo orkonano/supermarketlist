@@ -1,6 +1,6 @@
 import { ApiAuthError, withApiKey } from "./api-auth";
 import { ServiceError } from "./errors";
-import type { User } from "../app/generated/prisma";
+import type { User } from "../app/generated/prisma/client";
 
 type ApiAuth = { user: User; keyId: string };
 type ApiContext = { params: Promise<Record<string, string>> };

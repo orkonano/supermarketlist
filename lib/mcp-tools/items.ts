@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { User } from "../../app/generated/prisma";
+import type { User } from "../../app/generated/prisma/client";
 import {
   serviceAddListItem,
   serviceToggleListItem,

@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { prisma } from "./prisma";
-import type { User } from "../app/generated/prisma";
+import type { User } from "../app/generated/prisma/client";
 
 export class ApiAuthError extends Error {
   constructor() {
