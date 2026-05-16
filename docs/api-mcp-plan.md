@@ -3,8 +3,10 @@
 ## Goals
 
 1. Expose a REST API over the existing app logic (no browser required)
-2. Build an MCP server (`mcp/` folder in this repo) that calls that API
-3. Connect the MCP server to Claude Desktop / Claude.ai
+2. Build an MCP server inside the same Next.js app that calls that API
+3. Connect the MCP server to Claude Desktop and Claude.ai web
+
+> **Architecture:** everything runs in one Next.js deployment on Vercel. The MCP server is a single route handler (`/api/mcp`) using the SDK's `StreamableHTTPServerTransport` — no separate package, no separate build, no separate process to manage. The MCP tools call the same service helpers (`lib/list-service.ts`) that the REST API uses.
 
 ---
 
@@ -23,6 +25,7 @@ model ApiKey {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   lastUsedAt  DateTime?
+  expiresAt   DateTime?               // nullable — no expiry if null; checked on every request
 }
 ```
 
@@ -39,25 +42,59 @@ Then `npm run migrate:turso`.
 ### 1.3 Auth middleware — `lib/api-auth.ts`
 
 ```ts
-// Returns { user } or responds 401
-export async function withApiKey(req: Request): Promise<{ user: User } | Response>
+// Throws ApiAuthError (caught by apiRoute wrapper) or returns { user, keyId }
+export async function withApiKey(req: Request): Promise<{ user: User; keyId: string }>
 ```
 
 - Reads `Authorization: Bearer <key>` header
-- SHA-256 hashes the key, looks up `ApiKey` row, joins `User`
-- Updates `lastUsedAt`
-- Returns `401` if missing, invalid, or user not found
+- SHA-256 hashes the key, looks up `ApiKey` row where `expiresAt IS NULL OR expiresAt > now()`, joins `User`
+- Updates `lastUsedAt` **only when the existing value is older than 1 hour** — avoids a write on every read:
+  ```ts
+  if (!key.lastUsedAt || Date.now() - key.lastUsedAt.getTime() > 3_600_000) {
+    await prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })
+  }
+  ```
+- Throws `ApiAuthError` (status 401) if header is missing, key is invalid, expired, or user not found
 
-### 1.4 Settings page — `/app/settings/api-keys/page.tsx`
+**`apiRoute` wrapper** — used by both REST handlers and the MCP route so a forgotten auth check can't leak a 500:
+
+```ts
+// lib/api-route.ts
+export function apiRoute(
+  handler: (req: Request, auth: { user: User; keyId: string }) => Promise<Response>
+) {
+  return async (req: Request) => {
+    try {
+      const auth = await withApiKey(req)
+      return await handler(req, auth)
+    } catch (e) {
+      if (e instanceof ApiAuthError) return json({ error: "No autorizado" }, 401)
+      throw e
+    }
+  }
+}
+```
+
+### 1.4 Key management server actions — `lib/api-key-actions.ts`
+
+- `createApiKey(name)`:
+  - Enforces a **maximum of 10 keys per user** — returns an error if the limit is reached
+  - Generates key, stores hash, returns raw key once
+- `deleteApiKey(id)`:
+  - Where clause **must include `userId`** to prevent cross-user deletion:
+    ```ts
+    prisma.apiKey.delete({ where: { id, userId: session.userId } })
+    ```
+
+> **Note:** these are server actions (use the session cookie), not route handlers. They are not part of the REST API.
+
+### 1.5 Settings page — `/app/settings/api-keys/page.tsx`
 
 Simple browser UI (Argentine Spanish / vos):
 
-- Lists existing keys (name + created date + last used) — **raw key is never shown again after creation**
+- Lists existing keys (name + created date + last used + expiry if set) — **raw key is never shown again after creation**
 - "Generá una nueva clave" form → name input → POST creates key → shows raw key once in a modal
-- "Revocar" button per key → DELETE removes it
-- Backed by two new server actions in `lib/api-key-actions.ts`:
-  - `createApiKey(name)` → generates key, stores hash, returns raw key once
-  - `deleteApiKey(id)` → deletes row (owner-guarded)
+- "Revocar" button per key → calls `deleteApiKey`
 
 Add `/settings/api-keys` to `protectedRoutes` in `proxy.ts`.
 
@@ -65,7 +102,9 @@ Add `/settings/api-keys` to `protectedRoutes` in `proxy.ts`.
 
 ## Phase 2 — REST API Routes
 
-All routes under `/app/api/v1/`. Every handler starts with `const auth = await withApiKey(req)` and returns `auth` if it's a `Response` (i.e. 401).
+All routes under `/app/api/v1/`. Every handler is wrapped with `apiRoute()` from `lib/api-route.ts`.
+
+> **Important:** these are Next.js **route handlers** (`route.ts` files), not server actions. They do not use the session cookie. Auth is solely via the `Authorization: Bearer` header.
 
 Responses are JSON. Errors: `{ "error": "mensaje" }`.
 
@@ -83,59 +122,85 @@ Responses are JSON. Errors: `{ "error": "mensaje" }`.
 | `POST` | `/api/v1/lists/:id/items` | Add item (`{ name, quantity?, category? }`) |
 | `PATCH` | `/api/v1/lists/:id/items/:itemId` | Toggle (`{ checked }`) or update fields |
 | `DELETE` | `/api/v1/lists/:id/items/:itemId` | Delete item |
-| `GET` | `/api/v1/lists/:id/prices` | Price comparison, `?items=leche,pan` |
+| `GET` | `/api/v1/lists/:id/prices` | Price comparison — see query param note below |
+
+### Query params for prices
+
+Use **repeated params**, not comma-separated values, so item names with commas work correctly:
+
+```
+GET /api/v1/lists/:id/prices?items=leche&items=pan&items=arroz
+```
+
+Parse with: `new URL(req.url).searchParams.getAll('items')`.
+
+### Item-level scoping
+
+`PATCH` and `DELETE` on items must scope by both `itemId` **and** `listId` in the where clause — never by `itemId` alone:
+
+```ts
+prisma.listItem.update({ where: { id: itemId, listId } })
+prisma.listItem.delete({ where: { id: itemId, listId } })
+```
 
 ### Notes
 
-- The route handlers call the **same Prisma queries** already used by server actions — the logic is extracted into thin service helpers so both server actions and API routes share it without duplication.
-- `addedBy` for items created via API = user's `name` from the `ApiKey → User` join.
+- Route handlers call shared service helpers in `lib/list-service.ts` — no logic duplication with server actions.
+- `addedBy` for items created via API = `"${user.name} (API)"` — the suffix distinguishes API-created items from browser-created ones in the UI.
 - Month/year for new items defaults to the current month/year when not supplied.
 - Price endpoint reuses `getItemPrices` logic (cache + adapters) unchanged.
+- **Rate limiting:** no built-in rate limiting in v1. Before any public exposure, add middleware (e.g., Upstash Ratelimit) keyed on `keyId`. Deferred but required before public launch.
 
 ---
 
 ## Phase 3 — MCP Server
 
-### Location
+The MCP server runs as a single Next.js route handler at `/app/api/mcp/route.ts` using `StreamableHTTPServerTransport` from the MCP SDK. No separate package, no separate build step.
 
-```
-mcp/
-  package.json
-  tsconfig.json
-  src/
-    index.ts      ← entry point, stdio transport
-    client.ts     ← thin fetch wrapper for the REST API
-    tools/
-      lists.ts
-      items.ts
-      prices.ts
+### New dependency
+
+```bash
+npm install @modelcontextprotocol/sdk zod
 ```
 
-### Dependencies
+Add to root `package.json` — no workspace needed.
 
-```json
-{
-  "@modelcontextprotocol/sdk": "^1.x",
-  "zod": "^3.x"
+### Entry point — `app/api/mcp/route.ts`
+
+```ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
+import { withApiKey, ApiAuthError } from "@/lib/api-auth"
+import { registerListTools } from "@/lib/mcp-tools/lists"
+import { registerItemTools } from "@/lib/mcp-tools/items"
+import { registerPriceTools } from "@/lib/mcp-tools/prices"
+
+export async function POST(req: Request) {
+  try {
+    const auth = await withApiKey(req)
+    const server = new McpServer({ name: "supermarketlist", version: "1.0.0" })
+    registerListTools(server, auth)
+    registerItemTools(server, auth)
+    registerPriceTools(server, auth)
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+    await server.connect(transport)
+    return transport.handleRequest(req)
+  } catch (e) {
+    if (e instanceof ApiAuthError) return Response.json({ error: "No autorizado" }, { status: 401 })
+    throw e
+  }
 }
 ```
 
-### Configuration
+### Tools — `lib/mcp-tools/`
 
-Two env vars consumed at startup:
-
-```
-API_BASE_URL=https://your-app.vercel.app
-API_KEY=sml_...
-```
-
-### Tools
+Tools call `lib/list-service.ts` directly (same helpers used by REST routes):
 
 | Tool name | Input | What it does |
 |-----------|-------|--------------|
 | `list_lists` | — | Returns all user's lists |
 | `create_list` | `name` | Creates a new list |
-| `get_list` | `listId` | Returns list detail + items for current month |
+| `get_list` | `listId`, `month?`, `year?` | Returns list detail + items (defaults to current month/year) |
 | `rename_list` | `listId`, `name` | Renames a list |
 | `delete_list` | `listId` | Deletes a list |
 | `add_item` | `listId`, `name`, `quantity?`, `category?` | Adds an item |
@@ -143,25 +208,15 @@ API_KEY=sml_...
 | `delete_item` | `listId`, `itemId` | Removes an item |
 | `compare_prices` | `listId`, `items: string[]` | Returns prices from Coto, Disco, Carrefour |
 
-### Transport
+`get_list` accepts optional `month` and `year` so Claude can answer historical questions ("what did we buy in February?").
 
-stdio — the standard transport for Claude Desktop and Claude.ai MCP integrations.
-
-### Build
-
-```json
-// mcp/package.json
-"scripts": {
-  "build": "tsc",
-  "start": "node dist/index.js"
-}
-```
+Tool errors (e.g., list not found, not a member) must be returned as MCP tool errors, not thrown exceptions, so Claude can report them gracefully.
 
 ---
 
 ## Phase 4 — Connecting to Claude
 
-After running `npm run build` inside `mcp/`:
+No local build or process needed — the MCP server is already deployed at your Vercel URL.
 
 **Claude Desktop** — edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
@@ -169,62 +224,67 @@ After running `npm run build` inside `mcp/`:
 {
   "mcpServers": {
     "supermarketlist": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp/dist/index.js"],
-      "env": {
-        "API_BASE_URL": "https://your-app.vercel.app",
-        "API_KEY": "sml_..."
+      "type": "http",
+      "url": "https://your-app.vercel.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer sml_..."
       }
     }
   }
 }
 ```
 
-**Claude.ai (web)** — add the MCP server via Settings → Integrations using the same URL + key.
+**Claude.ai web** — Settings → Integrations → add MCP server with the same URL and API key.
+
+Both use the HTTP transport — no local process, no separate deployment.
+
+> **Cold start note:** Vercel serverless functions have a ~200ms cold start on the first MCP call after inactivity. Acceptable for a personal project.
 
 ---
 
 ## Phase 5 — Tests
 
-Following the existing `lib/__tests__/` + vitest pattern:
+Following the existing `lib/__tests__/` + vitest pattern. All tests live in the main test suite — no separate MCP test package.
 
-- `lib/__tests__/api-auth.test.ts` — key hashing, valid/invalid key lookup, 401 responses
-- `lib/__tests__/api-key-actions.test.ts` — create/delete key server actions
-- `mcp/src/__tests__/tools.test.ts` — tool input validation (mocked fetch)
+- `lib/__tests__/api-auth.test.ts` — key hashing, valid/invalid key lookup, expired key rejection, 401 responses
+- `lib/__tests__/api-key-actions.test.ts` — create/delete key server actions, 10-key limit, cross-user delete rejected
+- `app/api/v1/__tests__/lists.test.ts` — route handler tests: auth failure, correct responses, wrong-owner scenarios
+- `app/api/v1/__tests__/items.test.ts` — item create/update/delete with listId scoping verified
+- `lib/__tests__/mcp-tools.test.ts` — tool input validation and error propagation (mocked Prisma)
 
 ---
 
 ## File tree delta
 
 ```
-prisma/schema.prisma                          ← add ApiKey model
+prisma/schema.prisma                          ← add ApiKey model (with expiresAt)
 prisma/migrations/<ts>_add_api_key/           ← new migration
 
-lib/api-auth.ts                               ← withApiKey() middleware
-lib/api-key-actions.ts                        ← createApiKey, deleteApiKey
+lib/api-auth.ts                               ← withApiKey(), ApiAuthError
+lib/api-route.ts                              ← apiRoute() wrapper
+lib/api-key-actions.ts                        ← createApiKey (10-key limit), deleteApiKey (userId-scoped)
 lib/list-service.ts                           ← shared Prisma queries (extracted from actions)
+lib/mcp-tools/lists.ts                        ← registerListTools()
+lib/mcp-tools/items.ts                        ← registerItemTools()
+lib/mcp-tools/prices.ts                       ← registerPriceTools()
 lib/__tests__/api-auth.test.ts
 lib/__tests__/api-key-actions.test.ts
+lib/__tests__/mcp-tools.test.ts
 
 app/settings/api-keys/page.tsx                ← settings UI
-
+app/api/mcp/route.ts                          ← MCP server (StreamableHTTPServerTransport)
 app/api/v1/me/route.ts
 app/api/v1/lists/route.ts
 app/api/v1/lists/[id]/route.ts
 app/api/v1/lists/[id]/items/route.ts
 app/api/v1/lists/[id]/items/[itemId]/route.ts
 app/api/v1/lists/[id]/prices/route.ts
-
-mcp/package.json
-mcp/tsconfig.json
-mcp/src/index.ts
-mcp/src/client.ts
-mcp/src/tools/lists.ts
-mcp/src/tools/items.ts
-mcp/src/tools/prices.ts
-mcp/src/__tests__/tools.test.ts
+app/api/v1/__tests__/lists.test.ts
+app/api/v1/__tests__/items.test.ts
 
 proxy.ts                                      ← add /settings/api-keys to protectedRoutes
+package.json                                  ← add @modelcontextprotocol/sdk, zod
+package-lock.json                             ← commit alongside package.json
 ```
 
 ---
@@ -232,9 +292,9 @@ proxy.ts                                      ← add /settings/api-keys to prot
 ## Implementation order
 
 1. Prisma schema + migration + Turso deploy
-2. `lib/api-auth.ts` + tests
+2. `lib/api-auth.ts` + `lib/api-route.ts` + tests
 3. `lib/list-service.ts` (extract shared queries)
-4. REST API routes (v1)
-5. `lib/api-key-actions.ts` + settings page UI
-6. MCP server (`mcp/`)
-7. End-to-end smoke test: generate key → call API → connect MCP to Claude
+4. `lib/api-key-actions.ts` + settings page UI (generate keys to test with)
+5. REST API routes (v1) + route tests
+6. `lib/mcp-tools/` + `app/api/mcp/route.ts` + MCP tool tests
+7. End-to-end smoke test: generate key → call `/api/v1/me` → connect MCP to Claude Desktop

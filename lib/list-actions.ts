@@ -4,6 +4,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "./prisma";
 import { verifySession } from "./dal";
+import {
+  serviceCreateList,
+  serviceUpdateList,
+  serviceDeleteList,
+  serviceGetUserLists,
+  serviceGetListItems,
+  serviceAddListItem,
+  serviceToggleListItem,
+  serviceDeleteListItem,
+} from "./list-service";
 
 const ListNameSchema = z.string().min(1, "El nombre es obligatorio.").max(100).trim();
 const AddItemSchema = z.object({
@@ -11,31 +21,10 @@ const AddItemSchema = z.object({
   quantity: z.string().max(50).optional(),
 });
 
-async function assertOwner(listId: string, userId: string) {
-  const list = await prisma.list.findUnique({ where: { id: listId } });
-  if (!list || list.ownerId !== userId) throw new Error("No tenés permiso para realizar esta acción.");
-  return list;
-}
-
-async function assertMember(listId: string, userId: string) {
-  const member = await prisma.listMember.findUnique({
-    where: { listId_userId: { listId, userId } },
-  });
-  if (!member) throw new Error("No tenés permiso para realizar esta acción.");
-}
-
 export async function createList(name: string) {
   const session = await verifySession();
   const validName = ListNameSchema.parse(name);
-
-  const list = await prisma.list.create({
-    data: {
-      name: validName,
-      ownerId: session.userId,
-      members: { create: { userId: session.userId } },
-    },
-  });
-
+  const list = await serviceCreateList(session.userId, validName);
   revalidatePath("/lists");
   return list;
 }
@@ -43,51 +32,29 @@ export async function createList(name: string) {
 export async function updateList(listId: string, name: string) {
   const session = await verifySession();
   ListNameSchema.parse(name);
-  await assertOwner(listId, session.userId);
-
-  await prisma.list.update({
-    where: { id: listId },
-    data: { name: name.trim() },
-  });
-
+  await serviceUpdateList(listId, session.userId, name);
   revalidatePath("/lists");
   revalidatePath(`/lists/${listId}`);
 }
 
 export async function deleteList(listId: string) {
   const session = await verifySession();
-  await assertOwner(listId, session.userId);
-
-  await prisma.list.delete({ where: { id: listId } });
+  await serviceDeleteList(listId, session.userId);
   revalidatePath("/lists");
 }
 
 export async function getUserLists() {
   const session = await verifySession();
-
-  return prisma.list.findMany({
-    where: { members: { some: { userId: session.userId } } },
-    include: {
-      owner: { select: { name: true } },
-      _count: { select: { members: true, items: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  return serviceGetUserLists(session.userId);
 }
 
 export async function getListItems(listId: string, month: number, year: number) {
   const session = await verifySession();
-  await assertMember(listId, session.userId);
-
-  return prisma.item.findMany({
-    where: { listId, month, year },
-    orderBy: [{ category: "asc" }, { createdAt: "asc" }],
-  });
+  return serviceGetListItems(listId, session.userId, month, year);
 }
 
 export async function addListItem(listId: string, formData: FormData) {
   const session = await verifySession();
-  await assertMember(listId, session.userId);
 
   const name = formData.get("name") as string;
   const quantity = formData.get("quantity") as string;
@@ -103,16 +70,12 @@ export async function addListItem(listId: string, formData: FormData) {
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { name: true } });
 
-  await prisma.item.create({
-    data: {
-      name: parsed.data.name,
-      quantity: parsed.data.quantity ?? null,
-      category: category?.trim() || null,
-      addedBy: user.name,
-      month,
-      year,
-      listId,
-    },
+  await serviceAddListItem(listId, session.userId, user.name, {
+    name: parsed.data.name,
+    quantity: parsed.data.quantity,
+    category: category?.trim() || undefined,
+    month,
+    year,
   });
 
   revalidatePath(`/lists/${listId}`);
@@ -120,16 +83,12 @@ export async function addListItem(listId: string, formData: FormData) {
 
 export async function toggleListItem(listId: string, id: string, checked: boolean) {
   const session = await verifySession();
-  await assertMember(listId, session.userId);
-
-  await prisma.item.update({ where: { id, listId }, data: { checked } });
+  await serviceToggleListItem(listId, session.userId, id, checked);
   revalidatePath(`/lists/${listId}`);
 }
 
 export async function deleteListItem(listId: string, id: string) {
   const session = await verifySession();
-  await assertMember(listId, session.userId);
-
-  await prisma.item.delete({ where: { id, listId } });
+  await serviceDeleteListItem(listId, session.userId, id);
   revalidatePath(`/lists/${listId}`);
 }

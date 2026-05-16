@@ -18,6 +18,18 @@ model User {
   ownedLists     List[]       @relation("OwnedLists")
   memberLists    ListMember[]
   sentInvites    ListInvite[]
+  apiKeys        ApiKey[]
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  keyHash     String    @unique
+  name        String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
 }
 
 model List {

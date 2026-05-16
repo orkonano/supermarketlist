@@ -171,6 +171,77 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Developer API + MCP */}
+      <section className="bg-gray-900 px-4 py-16">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-4xl mb-4">⚙️</div>
+            <h2 className="text-2xl font-bold text-white mb-3">
+              Para developers
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto leading-relaxed">
+              Automatizá tus listas con la REST API o conectá tu asistente de IA
+              directamente con el servidor MCP.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* REST API */}
+            <div className="bg-gray-800 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🔌</span>
+                <h3 className="text-white font-semibold">REST API</h3>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Autenticación con API Key. Gestioná listas, productos y comparación de precios
+                desde cualquier app o script.
+              </p>
+              <pre className="bg-gray-950 rounded-lg p-3 text-xs text-green-400 overflow-x-auto leading-relaxed">
+{`curl /api/v1/lists \\
+  -H "Authorization: Bearer sml_..."`}
+              </pre>
+              <ul className="mt-4 space-y-1 text-xs text-gray-500">
+                <li>• CRUD de listas y productos</li>
+                <li>• Comparación de precios en tiempo real</li>
+                <li>• OAS 3.1 disponible en <code className="text-gray-400">docs/openapi.yaml</code></li>
+              </ul>
+            </div>
+
+            {/* MCP Server */}
+            <div className="bg-gray-800 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🤖</span>
+                <h3 className="text-white font-semibold">MCP Server</h3>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Conectá Claude Desktop para gestionar tus listas con lenguaje natural,
+                sin abrir la app.
+              </p>
+              <pre className="bg-gray-950 rounded-lg p-3 text-xs text-green-400 overflow-x-auto leading-relaxed">
+{`// claude_desktop_config.json
+{
+  "mcpServers": {
+    "supermarketlist": {
+      "command": "npx",
+      "args": ["mcp-remote",
+        "https://tu-app/api/mcp",
+        "--header",
+        "Authorization: Bearer sml_..."]
+    }
+  }
+}`}
+              </pre>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-600 text-xs mt-8">
+            Generá tu API Key desde{" "}
+            <span className="text-gray-400">Configuración → API Keys</span>{" "}
+            una vez que estés logueado.
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="text-center py-8 text-xs text-gray-400">
         Hecho con ❤️ para las familias que organizan sus compras juntas.

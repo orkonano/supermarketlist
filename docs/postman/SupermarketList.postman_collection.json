@@ -1,0 +1,736 @@
+{
+  "info": {
+    "_postman_id": "sml-api-mcp-collection-v1",
+    "name": "SupermarketList — API + MCP",
+    "description": "Complete collection for the SupermarketList REST API and MCP server.\n\n## Setup\n1. Import both `local.postman_environment.json` and `remote.postman_environment.json`.\n2. Select the environment you want to test against.\n3. Set the `apiKey` variable to a key generated in `/settings/api-keys`.\n4. Run **REST API › Lists › Create List** first — the test script captures the returned `id` into `listId` automatically.\n5. Run **REST API › Items › Add Item** to populate `itemId`.\n\n## MCP notes\nThe MCP server at `/api/mcp` uses the Streamable HTTP transport (stateless mode). Each POST is a self-contained JSON-RPC 2.0 call.\n\n**Protocol flow for direct testing:**\n1. Send **MCP › Initialize** once — the response contains server capabilities.\n2. Send **MCP › List Tools** to see all registered tools.\n3. Send any **MCP › tool call** request directly.\n\nFor full integration testing, use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) or connect via Claude Desktop using the config in `docs/api-mcp-plan.md`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{apiKey}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "description": "Override this with an environment" },
+    { "key": "apiKey",  "value": "",                      "description": "sml_... key from /settings/api-keys" },
+    { "key": "listId",  "value": "",                      "description": "Auto-set by Create List test script" },
+    { "key": "itemId",  "value": "",                      "description": "Auto-set by Add Item test script" }
+  ],
+  "item": [
+
+    {
+      "name": "REST API",
+      "item": [
+
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Get current user",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "me"]
+                },
+                "description": "Returns the authenticated user's id, name, and email. Good first call to verify the API key works."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"id\": \"clxxx\",\n  \"name\": \"Alice\",\n  \"email\": \"alice@example.com\"\n}"
+                },
+                {
+                  "name": "401 Unauthorized",
+                  "status": "Unauthorized",
+                  "code": 401,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"error\": \"No autorizado\" }"
+                }
+              ]
+            }
+          ]
+        },
+
+        {
+          "name": "Lists",
+          "item": [
+            {
+              "name": "Get all lists",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists"]
+                },
+                "description": "Returns all lists the authenticated user is a member of."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "[\n  {\n    \"id\": \"clxxx\",\n    \"name\": \"Compras\",\n    \"ownerId\": \"clyyy\",\n    \"owner\": { \"name\": \"Alice\" },\n    \"_count\": { \"members\": 2, \"items\": 5 },\n    \"createdAt\": \"2026-05-16T00:00:00.000Z\",\n    \"updatedAt\": \"2026-05-16T00:00:00.000Z\"\n  }\n]"
+                }
+              ]
+            },
+
+            {
+              "name": "Create list",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "  const id = pm.response.json().id;",
+                      "  pm.collectionVariables.set('listId', id);",
+                      "  console.log('listId set to', id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Compras del mes\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists"]
+                },
+                "description": "Creates a new list. The test script automatically captures the returned `id` into the `listId` collection variable."
+              },
+              "response": [
+                {
+                  "name": "201 Created",
+                  "status": "Created",
+                  "code": 201,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"id\": \"clxxx\",\n  \"name\": \"Compras del mes\",\n  \"ownerId\": \"clyyy\",\n  \"createdAt\": \"2026-05-16T00:00:00.000Z\",\n  \"updatedAt\": \"2026-05-16T00:00:00.000Z\"\n}"
+                },
+                {
+                  "name": "422 Invalid name",
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"error\": \"Nombre de lista inválido.\" }"
+                }
+              ]
+            },
+
+            {
+              "name": "Get list detail",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}"]
+                },
+                "description": "Returns list details and member count. Uses `listId` captured by Create List."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"id\": \"clxxx\",\n  \"name\": \"Compras del mes\",\n  \"ownerId\": \"clyyy\",\n  \"owner\": { \"name\": \"Alice\" },\n  \"_count\": { \"members\": 1, \"items\": 0 },\n  \"createdAt\": \"2026-05-16T00:00:00.000Z\",\n  \"updatedAt\": \"2026-05-16T00:00:00.000Z\"\n}"
+                },
+                {
+                  "name": "404 Not found",
+                  "status": "Not Found",
+                  "code": 404,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"error\": \"Lista no encontrada.\" }"
+                }
+              ]
+            },
+
+            {
+              "name": "Rename list",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Compras actualizadas\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}"]
+                },
+                "description": "Renames a list. Owner only."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"ok\": true }"
+                }
+              ]
+            },
+
+            {
+              "name": "Delete list",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}"]
+                },
+                "description": "Deletes a list permanently. Owner only. Returns 204 No Content."
+              },
+              "response": [
+                {
+                  "name": "204 No Content",
+                  "status": "No Content",
+                  "code": 204,
+                  "header": [],
+                  "body": ""
+                }
+              ]
+            }
+          ]
+        },
+
+        {
+          "name": "Items",
+          "item": [
+            {
+              "name": "Get items (current month)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items"]
+                },
+                "description": "Returns items for the current month/year. Add `?month=5&year=2026` to query a specific period."
+              },
+              "response": [
+                {
+                  "name": "200 OK — current month",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "[\n  {\n    \"id\": \"clxxx\",\n    \"name\": \"Leche\",\n    \"quantity\": \"1L\",\n    \"category\": \"Lácteos\",\n    \"addedBy\": \"Alice (API)\",\n    \"month\": 5,\n    \"year\": 2026,\n    \"checked\": false,\n    \"listId\": \"clyyy\",\n    \"createdAt\": \"2026-05-16T00:00:00.000Z\",\n    \"updatedAt\": \"2026-05-16T00:00:00.000Z\"\n  }\n]"
+                }
+              ]
+            },
+
+            {
+              "name": "Get items (specific month)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items?month=3&year=2026",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items"],
+                  "query": [
+                    { "key": "month", "value": "3" },
+                    { "key": "year",  "value": "2026" }
+                  ]
+                },
+                "description": "Returns items for March 2026."
+              },
+              "response": []
+            },
+
+            {
+              "name": "Add item",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "  const id = pm.response.json().id;",
+                      "  pm.collectionVariables.set('itemId', id);",
+                      "  console.log('itemId set to', id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Leche\",\n  \"quantity\": \"1L\",\n  \"category\": \"Lácteos\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items"]
+                },
+                "description": "Adds an item to the list. `addedBy` is set automatically to `<username> (API)`. The test script captures the returned `id` into `itemId`."
+              },
+              "response": [
+                {
+                  "name": "201 Created",
+                  "status": "Created",
+                  "code": 201,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"id\": \"clxxx\",\n  \"name\": \"Leche\",\n  \"quantity\": \"1L\",\n  \"category\": \"Lácteos\",\n  \"addedBy\": \"Alice (API)\",\n  \"month\": 5,\n  \"year\": 2026,\n  \"checked\": false,\n  \"listId\": \"clyyy\",\n  \"createdAt\": \"2026-05-16T00:00:00.000Z\",\n  \"updatedAt\": \"2026-05-16T00:00:00.000Z\"\n}"
+                },
+                {
+                  "name": "422 Validation error",
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"error\": \"Datos del producto inválidos.\" }"
+                }
+              ]
+            },
+
+            {
+              "name": "Toggle item (check)",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"checked\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items/{{itemId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items", "{{itemId}}"]
+                },
+                "description": "Marks the item as checked. Send `\"checked\": false` to uncheck."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"id\": \"clxxx\",\n  \"checked\": true,\n  ...\n}"
+                }
+              ]
+            },
+
+            {
+              "name": "Update item fields",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Leche entera\",\n  \"quantity\": \"2L\",\n  \"category\": \"Lácteos\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items/{{itemId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items", "{{itemId}}"]
+                },
+                "description": "Updates item name, quantity, and/or category. All fields are optional."
+              },
+              "response": []
+            },
+
+            {
+              "name": "Delete item",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/items/{{itemId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "items", "{{itemId}}"]
+                },
+                "description": "Removes an item from the list. Returns 204 No Content."
+              },
+              "response": [
+                {
+                  "name": "204 No Content",
+                  "status": "No Content",
+                  "code": 204,
+                  "header": [],
+                  "body": ""
+                }
+              ]
+            }
+          ]
+        },
+
+        {
+          "name": "Prices",
+          "item": [
+            {
+              "name": "Compare prices",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/lists/{{listId}}/prices?items=leche&items=pan&items=arroz",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "lists", "{{listId}}", "prices"],
+                  "query": [
+                    { "key": "items", "value": "leche" },
+                    { "key": "items", "value": "pan" },
+                    { "key": "items", "value": "arroz" }
+                  ]
+                },
+                "description": "Returns prices from Coto, Disco, and Carrefour for each requested item. Uses repeated `items` params (not comma-separated). Results are cached for 4 hours."
+              },
+              "response": [
+                {
+                  "name": "200 OK",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{\n  \"leche\": [\n    { \"supermarket\": \"coto\",      \"price\": 950, \"priceText\": \"$950\", \"productName\": \"Leche La Serenísima\", \"productUrl\": \"https://...\" },\n    { \"supermarket\": \"disco\",     \"price\": 980, \"priceText\": \"$980\", \"productName\": \"Leche Sancor\",        \"productUrl\": \"https://...\" },\n    { \"supermarket\": \"carrefour\", \"price\": null, \"priceText\": null,   \"productName\": null,                  \"productUrl\": null }\n  ],\n  \"pan\": [ ... ]\n}"
+                },
+                {
+                  "name": "422 No items",
+                  "status": "Unprocessable Entity",
+                  "code": 422,
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
+                  "body": "{ \"error\": \"Se requiere al menos un parámetro items.\" }"
+                }
+              ]
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "MCP Server",
+      "description": "JSON-RPC 2.0 requests to the MCP server at `/api/mcp`.\n\nAll requests require `Authorization: Bearer {{apiKey}}` and `Accept: application/json, text/event-stream`.\n\nThe server uses the Streamable HTTP transport in stateless mode. Each POST is independent.\n\n**Suggested flow for manual testing:**\n1. Initialize\n2. List Tools (verify all 9 tools are registered)\n3. Call any tool",
+      "item": [
+
+        {
+          "name": "Initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": {},\n    \"clientInfo\": {\n      \"name\": \"Postman\",\n      \"version\": \"1.0.0\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Initiates an MCP session and negotiates protocol version. The server responds with its capabilities and the list of supported protocol versions."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"result\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": {\n      \"tools\": {}\n    },\n    \"serverInfo\": {\n      \"name\": \"supermarketlist\",\n      \"version\": \"1.0.0\"\n    }\n  }\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "List tools",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Returns all 9 registered MCP tools with their input schemas: list_lists, create_list, get_list, rename_list, delete_list, add_item, toggle_item, delete_item, compare_prices."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — list_lists",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"list_lists\",\n    \"arguments\": {}\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Returns all lists the authenticated user is a member of."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — create_list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 4,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"create_list\",\n    \"arguments\": {\n      \"name\": \"Compras del mes\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Creates a new list and returns it."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — get_list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 5,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_list\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"month\": 5,\n      \"year\": 2026\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Returns list detail + items for the given month/year. Omit `month` and `year` to get the current month."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — get_list (current month)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 5,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_list\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Returns list detail + items for the current month (month/year omitted → defaults to now)."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — rename_list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 6,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"rename_list\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"name\": \"Compras actualizadas\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Renames a list. Owner only."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — delete_list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 7,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"delete_list\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Deletes a list permanently. Owner only. ⚠️ Irreversible."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — add_item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 8,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"add_item\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"name\": \"Leche\",\n      \"quantity\": \"1L\",\n      \"category\": \"Lácteos\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Adds an item to the list. `quantity` and `category` are optional. `addedBy` is set to `<username> (API)` automatically."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — toggle_item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 9,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"toggle_item\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"itemId\": \"{{itemId}}\",\n      \"checked\": true\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Marks an item as checked or unchecked. Change `checked` to `false` to uncheck."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — delete_item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 10,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"delete_item\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"itemId\": \"{{itemId}}\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Removes an item from the list. ⚠️ Irreversible."
+          },
+          "response": []
+        },
+
+        {
+          "name": "tool — compare_prices",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",       "value": "application/json" },
+              { "key": "Accept",              "value": "application/json, text/event-stream" },
+              { "key": "MCP-Protocol-Version","value": "2024-11-05" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 11,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"compare_prices\",\n    \"arguments\": {\n      \"listId\": \"{{listId}}\",\n      \"items\": [\"leche\", \"pan\", \"arroz\"]\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mcp"]
+            },
+            "description": "Fetches and compares prices from Coto, Disco, and Carrefour. Results are cached for 4 hours. The `items` array supports any Spanish product name."
+          },
+          "response": []
+        }
+
+      ]
+    }
+
+  ]
+}

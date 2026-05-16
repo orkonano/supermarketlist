@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("../dal", () => ({ verifySession: vi.fn() }));
 vi.mock("../prisma", () => ({
   prisma: {
+    list: { findUnique: vi.fn() },
     listMember: { findUnique: vi.fn() },
     priceCache: { findMany: vi.fn(), upsert: vi.fn() },
   },
@@ -74,15 +75,17 @@ beforeEach(() => {
 describe("getItemPrices — auth guard", () => {
   it("throws when the user is not a member of the list", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.list.findUnique).mockResolvedValue({ id: "list-1", ownerId: "other-user" } as never);
     vi.mocked(prisma.priceCache.findMany).mockResolvedValue([]);
 
     await expect(getItemPrices("list-1", ["leche"])).rejects.toThrow(
-      "No tenés permiso para acceder a esta lista."
+      "No tenés permiso para realizar esta acción."
     );
   });
 
   it("does not call any adapter when the user is not a member", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.list.findUnique).mockResolvedValue({ id: "list-1", ownerId: "other-user" } as never);
     vi.mocked(prisma.priceCache.findMany).mockResolvedValue([]);
 
     await expect(getItemPrices("list-1", ["leche"])).rejects.toThrow();

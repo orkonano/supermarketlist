@@ -26,14 +26,22 @@ export default async function ListsPage({
           <h1 className="text-3xl font-bold text-gray-900">Mis listas</h1>
           <div className="flex flex-col items-end gap-1">
             <span className="text-sm text-gray-600">Hola, {user?.name}</span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
+            <div className="flex items-center gap-3">
+              <Link
+                href="/settings/api-keys"
+                className="text-xs text-gray-500 hover:text-blue-600 underline transition-colors"
               >
-                Cerrar sesión
-              </button>
-            </form>
+                API Keys
+              </Link>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
