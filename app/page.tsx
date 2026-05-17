@@ -203,7 +203,7 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-1 text-xs text-gray-500">
                 <li>• CRUD de listas y productos</li>
                 <li>• Comparación de precios en tiempo real</li>
-                <li>• OAS 3.1 disponible en <code className="text-gray-400">docs/openapi.yaml</code></li>
+                <li>• OAS 3.1: <a href="/docs" className="text-gray-300 underline underline-offset-2 hover:text-white">Explorador interactivo →</a> · <a href="/openapi.yaml" className="text-gray-500 hover:text-gray-300 underline underline-offset-2">openapi.yaml</a></li>
               </ul>
             </div>
 
