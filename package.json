@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "migrate:turso": "tsx scripts/migrate-turso.ts",
+    "migrate:local": "TURSO_DATABASE_URL=file:./prisma/dev.db tsx scripts/migrate-turso.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
