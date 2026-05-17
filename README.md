@@ -104,6 +104,7 @@ Set the following environment variables in **Vercel → Settings → Environment
 | `SESSION_SECRET` | JWT signing secret — `openssl rand -base64 32` |
 | `TURSO_DATABASE_URL` | Turso database URL (`libsql://...`) |
 | `TURSO_AUTH_TOKEN` | Turso auth token |
+| `NEXT_PUBLIC_BASE_URL` | Deployed app URL (e.g. `https://your-app.vercel.app`) — used in emails, the OpenAPI spec, and the MCP snippet; falls back to `http://localhost:3000` locally |
 
 The build command (`npm run build`) automatically runs Turso migrations and generates the Prisma client before Next.js builds.
 
