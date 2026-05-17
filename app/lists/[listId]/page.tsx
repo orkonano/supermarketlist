@@ -34,7 +34,7 @@ export default async function ListPage({
     }),
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { name: true, emailVerified: true },
+      select: { name: true },
     }),
     getListItems(listId, month, year),
   ]);
@@ -79,12 +79,6 @@ export default async function ListPage({
 
         {sp.verified === "1" && <VerificationBanner verified />}
         {sp.error && <VerificationBanner error={sp.error} />}
-
-        {!user?.emailVerified && !sp.verified && (
-          <div className="mb-6 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            Revisá tu correo y hacé clic en el enlace de verificación para confirmar tu cuenta.
-          </div>
-        )}
 
         <ShoppingList items={items} month={month} year={year} listId={listId} />
       </div>
