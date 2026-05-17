@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/adapter-libsql": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "@scalar/nextjs-api-reference": "^0.10.16",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.2",
     "next": "16.2.4",

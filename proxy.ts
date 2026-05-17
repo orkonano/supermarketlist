@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decrypt, encrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 
-const protectedRoutes: string[] = [];
+const protectedRoutes: string[] = ["/settings/api-keys"];
 const publicRoutes = ["/", "/login", "/signup"];
 
 export default async function proxy(req: NextRequest) {

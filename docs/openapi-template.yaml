@@ -1,0 +1,626 @@
+openapi: 3.1.0
+info:
+  title: SuperMarketList API
+  version: 1.0.0
+  description: |
+    REST API para gestionar listas de supermercado, productos y comparación de precios.
+
+    ## Autenticación
+
+    Todas las rutas requieren un API Key en el header `Authorization`:
+
+    ```
+    Authorization: Bearer sml_...
+    ```
+
+    Generá tu API Key desde **Configuración → API Keys** dentro de la app.
+
+    ## MCP Server
+
+    El servidor MCP está disponible en `/api/mcp` y puede conectarse a Claude Desktop
+    u otros clientes MCP compatibles con el protocolo Streamable HTTP.
+
+    ```json
+    {
+      "mcpServers": {
+        "supermarketlist": {
+          "command": "npx",
+          "args": [
+            "mcp-remote",
+            "https://tu-app.vercel.app/api/mcp",
+            "--header",
+            "Authorization: Bearer sml_..."
+          ]
+        }
+      }
+    }
+    ```
+
+servers:
+  - url: https://tu-app.vercel.app/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Usuario autenticado
+  - name: Lists
+    description: Listas de compras
+  - name: Items
+    description: Productos de una lista
+  - name: Prices
+    description: Comparación de precios entre supermercados
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: "API Key generada desde la app. Formato: sml_<64 hex chars>"
+
+  schemas:
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+          example: cmo1234abcd
+        name:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: juan@example.com
+
+    List:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ownerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        owner:
+          type: object
+          properties:
+            name:
+              type: string
+        _count:
+          type: object
+          properties:
+            members:
+              type: integer
+            items:
+              type: integer
+
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        checked:
+          type: boolean
+        addedBy:
+          type: string
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        year:
+          type: integer
+        listId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PriceResult:
+      type: object
+      properties:
+        supermarket:
+          type: string
+          enum: [coto, disco, carrefour]
+        price:
+          type: number
+          nullable: true
+          description: Precio en ARS
+        priceText:
+          type: string
+          nullable: true
+          description: Precio formateado (e.g. "$ 1.500,00")
+        productName:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        productUrl:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+
+    Prices:
+      type: object
+      description: Clave = nombre del producto. Valor = resultados de los 3 supermercados.
+      additionalProperties:
+        type: array
+        items:
+          $ref: '#/components/schemas/PriceResult'
+      example:
+        leche:
+          - supermarket: coto
+            price: 1250
+            priceText: "$ 1.250,00"
+            productName: Leche La Serenísima Entera
+            brand: La Serenísima
+            productUrl: https://www.cotodigital.com.ar/...
+            imageUrl: https://...
+          - supermarket: disco
+            price: null
+            priceText: null
+            productName: null
+            brand: null
+            productUrl: null
+            imageUrl: null
+          - supermarket: carrefour
+            price: 1199
+            priceText: "$ 1.199,00"
+            productName: Leche Entera La Serenísima
+            brand: La Serenísima
+            productUrl: https://www.carrefour.com.ar/...
+            imageUrl: https://...
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+paths:
+  /me:
+    get:
+      summary: Usuario actual
+      operationId: getMe
+      tags: [Auth]
+      responses:
+        '200':
+          description: Datos del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: API Key inválida o faltante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists:
+    get:
+      summary: Listar listas
+      operationId: getLists
+      tags: [Lists]
+      responses:
+        '200':
+          description: Todas las listas de las que el usuario es miembro
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/List'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Crear lista
+      operationId: createList
+      tags: [Lists]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Super de mayo
+      responses:
+        '201':
+          description: Lista creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Nombre inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID de la lista
+
+    get:
+      summary: Obtener lista
+      operationId: getList
+      tags: [Lists]
+      responses:
+        '200':
+          description: Detalle de la lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lista no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Renombrar lista (solo dueño)
+      operationId: renameList
+      tags: [Lists]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+      responses:
+        '200':
+          description: Lista renombrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos el dueño de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Nombre inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar lista (solo dueño)
+      operationId: deleteList
+      tags: [Lists]
+      responses:
+        '204':
+          description: Lista eliminada
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos el dueño de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists/{id}/items:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID de la lista
+
+    get:
+      summary: Obtener productos
+      operationId: getItems
+      tags: [Items]
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Mes (1–12). Por defecto el mes actual.
+        - name: year
+          in: query
+          schema:
+            type: integer
+            example: 2026
+          description: Año. Por defecto el año actual.
+      responses:
+        '200':
+          description: Productos del mes y año indicado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Agregar producto
+      operationId: addItem
+      tags: [Items]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Leche
+                quantity:
+                  type: string
+                  maxLength: 50
+                  example: 2 litros
+                category:
+                  type: string
+                  example: Lácteos
+      responses:
+        '201':
+          description: Producto creado. `addedBy` se setea como "[nombre] (API)".
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists/{id}/items/{itemId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID de la lista
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID del producto
+
+    patch:
+      summary: Actualizar o tachar producto
+      operationId: updateItem
+      tags: [Items]
+      description: |
+        Actualiza uno o más campos del producto. Para simplemente tacharlo, enviá solo `{ "checked": true }`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                checked:
+                  type: boolean
+                name:
+                  type: string
+                  minLength: 1
+                quantity:
+                  type: string
+                  maxLength: 50
+                  nullable: true
+                category:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Eliminar producto
+      operationId: deleteItem
+      tags: [Items]
+      responses:
+        '204':
+          description: Producto eliminado
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lists/{id}/prices:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID de la lista
+
+    get:
+      summary: Comparar precios
+      operationId: getPrices
+      tags: [Prices]
+      description: |
+        Busca precios en Coto, Disco y Carrefour para los productos indicados.
+        Los resultados se cachean por 4 horas.
+      parameters:
+        - name: items
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: "Nombres de productos. Repetir por cada uno: ?items=leche&items=pan"
+          example: ["leche", "pan"]
+      responses:
+        '200':
+          description: Precios por producto y supermercado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prices'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: No sos miembro de esta lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: No se proveyó ningún ítem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

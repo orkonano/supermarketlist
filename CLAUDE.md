@@ -43,6 +43,18 @@ TURSO_DATABASE_URL="" npx prisma migrate dev --name <name>
 npm run migrate:turso
 ```
 
+### Prisma type imports
+
+Always import Prisma model types from `app/generated/prisma/client`, not from the bare `app/generated/prisma` directory — there is no `index.ts`, so the Next.js build worker cannot resolve the directory import.
+
+```ts
+// correct
+import type { User } from "@/app/generated/prisma/client";
+
+// wrong — causes build failure
+import type { User } from "@/app/generated/prisma";
+```
+
 ### Manual data migrations
 
 When adding a NOT NULL column to an existing table in SQLite, Prisma's generated INSERT omits the new column and fails the NOT NULL constraint. Add data migration steps **before** the `RedefineTables` block in the migration SQL:
@@ -60,9 +72,13 @@ The auth/routing middleware lives in **`proxy.ts`** (repo root), not `middleware
 
 `proxy.ts` controls two arrays:
 - `protectedRoutes` — unauthenticated visitors are redirected to `/login`
-- `publicRoutes` — authenticated users are redirected to `/lists`
+- `publicRoutes` — authenticated users are redirected **away** to `/lists`
 
-When adding or changing a route, update these arrays accordingly. Public-facing pages (e.g. the landing page `/`) must be in `publicRoutes`, not `protectedRoutes`.
+Routes accessible to everyone (logged-in or not) must be in **neither** array — the middleware passes them through. Only add a route to `publicRoutes` if a logged-in user should be bounced away from it (e.g. `/login`, `/signup`). Adding `/docs` or similar pages to `publicRoutes` would silently redirect authenticated users away from them.
+
+## Base URL
+
+The app's public URL is `process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"`. Use this pattern everywhere a full URL is needed (emails, OpenAPI spec, MCP snippets). The env var is intentionally absent from `.env` — local dev always falls back to `localhost:3000`.
 
 ## Git commit signing (GPG)
 
@@ -131,6 +147,8 @@ Apply this to any new string from the start — do not write it in English or ne
 ## Testing
 
 Run `npm test` after every change — no exceptions.
+
+Also run `npx tsc --noEmit` before every push. Vitest runs code but does not type-check it, so type errors that would fail the Vercel build (e.g. `string | undefined` passed to `encodeURIComponent`) pass tests locally without complaint.
 
 When adding a new feature, add tests for it in the same PR. Tests live in `lib/__tests__/` and follow the existing vitest + mock pattern.
 
