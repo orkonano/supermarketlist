@@ -78,12 +78,7 @@ Routes accessible to everyone (logged-in or not) must be in **neither** array �
 
 ## Base URL
 
-The app's public URL is `process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"`. It is used in:
-- Email workflows (`workflows/email-verification.ts`, `workflows/list-invite.ts`)
-- The dynamic OpenAPI YAML handler (`app/openapi.yaml/route.ts`)
-- The MCP snippet on the landing page (`app/components/McpSnippets.tsx`)
-
-`NEXT_PUBLIC_BASE_URL` must be set in **Vercel → Settings → Environment Variables** for production and preview deployments. It is intentionally absent from `.env` — local dev falls back to `localhost:3000`.
+The app's public URL is `process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"`. Use this pattern everywhere a full URL is needed (emails, OpenAPI spec, MCP snippets). The env var is intentionally absent from `.env` — local dev always falls back to `localhost:3000`.
 
 ## Git commit signing (GPG)
 
