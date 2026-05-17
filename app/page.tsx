@@ -1,4 +1,5 @@
 import Link from "next/link";
+import McpSnippets from "./components/McpSnippets";
 
 const features = [
   {
@@ -69,6 +70,7 @@ const steps = [
 ];
 
 export default function LandingPage() {
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return (
     <main className="min-h-screen bg-white text-gray-900">
       {/* Hero */}
@@ -214,23 +216,10 @@ export default function LandingPage() {
                 <h3 className="text-white font-semibold">MCP Server</h3>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Conectá Claude Desktop para gestionar tus listas con lenguaje natural,
-                sin abrir la app.
+                Conectá tu herramienta de IA favorita para gestionar tus listas con
+                lenguaje natural, sin abrir la app.
               </p>
-              <pre className="bg-gray-950 rounded-lg p-3 text-xs text-green-400 overflow-x-auto leading-relaxed">
-{`// claude_desktop_config.json
-{
-  "mcpServers": {
-    "supermarketlist": {
-      "command": "npx",
-      "args": ["mcp-remote",
-        "https://tu-app/api/mcp",
-        "--header",
-        "Authorization: Bearer sml_..."]
-    }
-  }
-}`}
-              </pre>
+              <McpSnippets baseUrl={baseUrl} />
             </div>
           </div>
 
