@@ -15,7 +15,7 @@ export default async function ListsPage({
     getUserLists(),
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { name: true },
+      select: { name: true, emailVerified: true },
     }),
   ]);
 
@@ -44,6 +44,12 @@ export default async function ListsPage({
             </div>
           </div>
         </div>
+
+        {!user?.emailVerified && (
+          <div className="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            Revisá tu correo y hacé clic en el enlace de verificación para confirmar tu cuenta.
+          </div>
+        )}
 
         {params.error && (
           <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
