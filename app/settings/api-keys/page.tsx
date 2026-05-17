@@ -30,6 +30,16 @@ export default async function ApiKeysPage({
             <code className="block text-xs font-mono text-green-900 bg-green-100 rounded-lg px-3 py-2 break-all">
               {params.created}
             </code>
+            <div className="mt-3">
+              <a
+                href={`/docs?token=${encodeURIComponent(params.created)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-900 underline underline-offset-2"
+              >
+                Probar en el explorador →
+              </a>
+            </div>
           </div>
         )}
 
