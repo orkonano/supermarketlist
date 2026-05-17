@@ -37,22 +37,16 @@ npm install
 Copy `.env.example` to `.env` and fill in the values:
 
 ```
-DATABASE_URL="file:./dev.db"
-TURSO_DATABASE_URL="libsql://..."
-TURSO_AUTH_TOKEN="..."
+DATABASE_URL="file:./prisma/dev.db"
 SESSION_SECRET="<run: openssl rand -base64 32>"
 ```
 
-> The app always connects to Turso at runtime (even locally), because `TURSO_DATABASE_URL` takes precedence in `prisma.config.ts`. Set `TURSO_DATABASE_URL` to your Turso URL or leave it unset to use the local SQLite file.
+> **Do not add `TURSO_DATABASE_URL` to `.env`.** That variable is for Vercel only. Setting it locally connects your dev environment directly to the production database and risks data loss.
 
 ### 3. Run database migrations
 
 ```bash
-# Local SQLite
-npx prisma migrate dev
-
-# Turso (production)
-npm run migrate:turso
+npm run migrate:local
 ```
 
 ### 4. Start the dev server
@@ -73,15 +67,13 @@ npm run migrate:turso
 
 After every `prisma migrate dev` (local), run `npm run migrate:turso` to keep the production database in sync.
 
-### Running `prisma migrate dev` against local SQLite
+### Running `prisma migrate dev` locally
 
-Because `TURSO_DATABASE_URL` is set in `.env`, Prisma defaults to Turso. To target local SQLite temporarily:
+Since `TURSO_DATABASE_URL` is not set in `.env`, Prisma targets the local SQLite automatically — no workaround needed:
 
 ```bash
-# 1. In prisma.config.ts, change ?? to ||
-TURSO_DATABASE_URL="" npx prisma migrate dev --name <migration-name>
-# 2. Revert ?? in prisma.config.ts
-npm run migrate:turso
+npx prisma migrate dev --name <migration-name>
+npm run migrate:turso   # apply to Turso production
 ```
 
 ## Scripts
@@ -93,7 +85,8 @@ npm run migrate:turso
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run tests (Vitest) |
-| `npm run migrate:turso` | Apply pending migrations to Turso |
+| `npm run migrate:local` | Apply pending migrations to local SQLite (`dev.db`) |
+| `npm run migrate:turso` | Apply pending migrations to Turso (production) |
 
 ## Deployment (Vercel)
 

@@ -16,32 +16,46 @@ This applies to every task — features, fixes, docs, README updates, landing pa
 
 This project uses **SQLite locally** and **Turso (libSQL) in production**.
 
+### Local vs production databases
+
+Local development uses SQLite (`prisma/dev.db`). **Do not set `TURSO_DATABASE_URL` in `.env`** — doing so connects local dev directly to the production Turso database and risks data loss when running migrations or any destructive local operation.
+
+Vercel production connects to Turso via env vars set in the Vercel dashboard only.
+
+### Setting up the local database
+
+On a fresh clone (or after deleting `dev.db`):
+
+```bash
+npm run migrate:local
+```
+
+This runs the same migration script as production but targets the local SQLite file. `prisma migrate deploy` does NOT work here because the schema has no `url` field — the URL is managed entirely by `prisma.config.ts` and the Prisma CLI rejects `file:` URLs in that context.
+
 ### Running migrations
 
-`prisma migrate deploy` does NOT work with Turso — the Prisma migration engine does not support the `libsql://` scheme.
-
-Use the custom script instead:
+For production (Turso), use the custom script:
 
 ```bash
 npm run migrate:turso
 ```
 
-**Workflow:** after every `prisma migrate dev` (local), also run `npm run migrate:turso` to apply the migration to the Turso production database. The app always connects to Turso at runtime (even locally, because `TURSO_DATABASE_URL` is set in `.env`), so skipping this step causes `no such table` errors at runtime even though the local SQLite is up to date.
+**Workflow:** after every `prisma migrate dev` (local), also run `npm run migrate:turso` to apply the migration to the Turso production database. The script is also part of the Vercel build command and runs on every deployment — it exits cleanly when `TURSO_DATABASE_URL` is not set (i.e., locally).
 
 The script (`scripts/migrate-turso.ts`) connects via `@libsql/client`, maintains a `_prisma_migrations` tracking table, and applies any unapplied SQL files from `prisma/migrations/`.
 
-Required env vars: `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+Required env vars: `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` (production/Vercel only).
 
 ### Running `prisma migrate dev` locally
 
-`prisma.config.ts` uses `TURSO_DATABASE_URL ?? DATABASE_URL`. Because `TURSO_DATABASE_URL` is always set in `.env`, `prisma migrate dev` tries to connect to Turso and fails. To run it against the local SQLite, temporarily change `??` to `||` in `prisma.config.ts`, run the command, then revert:
+`prisma.config.ts` uses `TURSO_DATABASE_URL ?? DATABASE_URL`. Since `TURSO_DATABASE_URL` is not set in `.env` locally, `prisma migrate dev` targets the local SQLite automatically — no workaround needed:
 
 ```bash
-# 1. change ?? to || in prisma.config.ts
-TURSO_DATABASE_URL="" npx prisma migrate dev --name <name>
-# 2. revert ?? in prisma.config.ts
-npm run migrate:turso
+npx prisma migrate dev --name <name>
+npm run migrate:turso   # apply the new migration to Turso production
 ```
+
+If you ever need to resync the local SQLite (e.g. after pulling a branch with new migrations), run `npm run migrate:local`.
 
 ### Prisma type imports
 
