@@ -72,9 +72,18 @@ The auth/routing middleware lives in **`proxy.ts`** (repo root), not `middleware
 
 `proxy.ts` controls two arrays:
 - `protectedRoutes` — unauthenticated visitors are redirected to `/login`
-- `publicRoutes` — authenticated users are redirected to `/lists`
+- `publicRoutes` — authenticated users are redirected **away** to `/lists`
 
-When adding or changing a route, update these arrays accordingly. Public-facing pages (e.g. the landing page `/`) must be in `publicRoutes`, not `protectedRoutes`.
+Routes accessible to everyone (logged-in or not) must be in **neither** array — the middleware passes them through. Only add a route to `publicRoutes` if a logged-in user should be bounced away from it (e.g. `/login`, `/signup`). Adding `/docs` or similar pages to `publicRoutes` would silently redirect authenticated users away from them.
+
+## Base URL
+
+The app's public URL is `process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"`. It is used in:
+- Email workflows (`workflows/email-verification.ts`, `workflows/list-invite.ts`)
+- The dynamic OpenAPI YAML handler (`app/openapi.yaml/route.ts`)
+- The MCP snippet on the landing page (`app/components/McpSnippets.tsx`)
+
+`NEXT_PUBLIC_BASE_URL` must be set in **Vercel → Settings → Environment Variables** for production and preview deployments. It is intentionally absent from `.env` — local dev falls back to `localhost:3000`.
 
 ## Git commit signing (GPG)
 
