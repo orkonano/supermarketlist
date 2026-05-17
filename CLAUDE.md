@@ -43,6 +43,18 @@ TURSO_DATABASE_URL="" npx prisma migrate dev --name <name>
 npm run migrate:turso
 ```
 
+### Prisma type imports
+
+Always import Prisma model types from `app/generated/prisma/client`, not from the bare `app/generated/prisma` directory — there is no `index.ts`, so the Next.js build worker cannot resolve the directory import.
+
+```ts
+// correct
+import type { User } from "@/app/generated/prisma/client";
+
+// wrong — causes build failure
+import type { User } from "@/app/generated/prisma";
+```
+
 ### Manual data migrations
 
 When adding a NOT NULL column to an existing table in SQLite, Prisma's generated INSERT omits the new column and fails the NOT NULL constraint. Add data migration steps **before** the `RedefineTables` block in the migration SQL:
