@@ -70,13 +70,15 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
     const rawPrice = priceStr ? parseFloat(priceStr) : null;
     const price = rawPrice != null && !isNaN(rawPrice) && rawPrice > 0 ? rawPrice : null;
 
+    const productUrl = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}`;
+
     return {
       supermarket: "coto",
       price,
       priceText: price != null ? formatARS(price) : null,
       productName: attrs["product.displayName"]?.[0] ?? null,
       brand: attrs["product.MARCA"]?.[0] ?? null,
-      productUrl: null,
+      productUrl,
       imageUrl: attrs["product.mediumImage.url"]?.[0] ?? null,
     };
   } catch {

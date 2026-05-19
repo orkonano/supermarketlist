@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getItemPrices, type ItemPrices } from "@/lib/price-actions";
+import { getItemPrices } from "@/lib/price-actions";
+import type { ItemPrices } from "@/lib/price-service";
 import { formatARS } from "@/lib/price-adapters";
 import type { Item } from "@/app/generated/prisma/client";
 
@@ -144,19 +145,45 @@ export default function PriceComparison({ listId, items }: Props) {
                               </span>
                               {(r.brand || r.productName) && (
                                 <span className="text-xs text-gray-400 leading-tight max-w-[120px] text-right">
-                                  {r.brand && (
-                                    <span className="font-medium text-gray-500">{r.brand}</span>
-                                  )}
-                                  {r.brand && r.productName && " · "}
-                                  {r.productName && (
-                                    <span
-                                      className="truncate block"
-                                      title={r.productName}
+                                  {r.productUrl ? (
+                                    <a
+                                      href={r.productUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline"
                                     >
-                                      {r.productName.length > 30
-                                        ? r.productName.slice(0, 30) + "…"
-                                        : r.productName}
-                                    </span>
+                                      {r.brand && (
+                                        <span className="font-medium text-gray-500">{r.brand}</span>
+                                      )}
+                                      {r.brand && r.productName && " · "}
+                                      {r.productName && (
+                                        <span
+                                          className="truncate block"
+                                          title={r.productName}
+                                        >
+                                          {r.productName.length > 30
+                                            ? r.productName.slice(0, 30) + "…"
+                                            : r.productName}
+                                        </span>
+                                      )}
+                                    </a>
+                                  ) : (
+                                    <>
+                                      {r.brand && (
+                                        <span className="font-medium text-gray-500">{r.brand}</span>
+                                      )}
+                                      {r.brand && r.productName && " · "}
+                                      {r.productName && (
+                                        <span
+                                          className="truncate block"
+                                          title={r.productName}
+                                        >
+                                          {r.productName.length > 30
+                                            ? r.productName.slice(0, 30) + "…"
+                                            : r.productName}
+                                        </span>
+                                      )}
+                                    </>
                                   )}
                                 </span>
                               )}

@@ -224,7 +224,7 @@ describe("cotoAdapter", () => {
     expect(result.brand).toBe("LA SERENÍSIMA");
     expect(result.productName).toBe("Leche La Serenísima 1L");
     expect(result.imageUrl).toBe("https://static.cotodigital3.com.ar/leche.jpg");
-    expect(result.productUrl).toBeNull();
+    expect(result.productUrl).toBe("https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=leche");
   });
 
   it("parses the price string as a float", async () => {
