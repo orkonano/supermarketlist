@@ -141,6 +141,22 @@ describe("getItemPrices — cache hits", () => {
     expect(cotoAdapter).toHaveBeenCalledTimes(1);
     expect(vtexAdapter).toHaveBeenCalledTimes(2); // disco + carrefour
   });
+
+  it("returns correct cached prices when the item name contains a colon", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER);
+    vi.mocked(prisma.priceCache.findMany).mockResolvedValue([
+      cacheEntry("leche:entera", "coto"),
+      cacheEntry("leche:entera", "disco"),
+      cacheEntry("leche:entera", "carrefour"),
+    ] as never);
+
+    const result = await getItemPrices("list-1", ["leche:entera"]);
+
+    expect(cotoAdapter).not.toHaveBeenCalled();
+    expect(vtexAdapter).not.toHaveBeenCalled();
+    expect(result["leche:entera"]).toHaveLength(3);
+    expect(result["leche:entera"].find((r) => r.supermarket === "coto")?.price).toBe(1890);
+  });
 });
 
 // ---------------------------------------------------------------------------

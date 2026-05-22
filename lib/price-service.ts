@@ -14,6 +14,10 @@ export type ItemPrices = Record<string, PriceResult[]>;
 
 const SUPERMARKETS: Supermarket[] = ["coto", "disco", "carrefour"];
 
+function cacheKey(query: string, supermarket: string): string {
+  return JSON.stringify([query, supermarket]);
+}
+
 export async function serviceGetItemPrices(
   listId: string,
   userId: string,
@@ -31,7 +35,7 @@ export async function serviceGetItemPrices(
   const fresh = new Map<string, PriceResult>();
   for (const e of cachedEntries) {
     if (now - e.fetchedAt.getTime() < CACHE_TTL_MS) {
-      fresh.set(`${e.query}:${e.supermarket}`, {
+      fresh.set(cacheKey(e.query, e.supermarket), {
         supermarket: e.supermarket as Supermarket,
         price: e.price,
         priceText: e.priceText,
@@ -46,14 +50,14 @@ export async function serviceGetItemPrices(
   const tasks: Promise<void>[] = [];
   for (const query of queries) {
     for (const supermarket of SUPERMARKETS) {
-      if (fresh.has(`${query}:${supermarket}`)) continue;
+      if (fresh.has(cacheKey(query, supermarket))) continue;
 
       const task = (
         supermarket === "coto"
           ? cotoAdapter(query)
           : vtexAdapter(supermarket, query)
       ).then(async (r) => {
-        fresh.set(`${query}:${supermarket}`, r);
+        fresh.set(cacheKey(query, supermarket), r);
         await prisma.priceCache.upsert({
           where: { query_supermarket: { query, supermarket } },
           create: {
@@ -87,7 +91,7 @@ export async function serviceGetItemPrices(
   const result: ItemPrices = {};
   for (const name of itemNames) {
     const query = name.toLowerCase().trim();
-    result[name] = SUPERMARKETS.map((s) => fresh.get(`${query}:${s}`) ?? empty(s));
+    result[name] = SUPERMARKETS.map((s) => fresh.get(cacheKey(query, s)) ?? empty(s));
   }
 
   return result;
