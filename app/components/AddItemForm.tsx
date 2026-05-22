@@ -75,12 +75,6 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
             ))}
           </select>
         </div>
-        <input
-          name="addedBy"
-          required
-          placeholder="Tu nombre *"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-        />
         <div className="flex gap-2 pt-1">
           <button
             type="button"
