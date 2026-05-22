@@ -66,7 +66,7 @@ export async function addListItem(listId: string, formData: FormData) {
   const year = Number.isInteger(rawYear) && rawYear >= 2000 && rawYear <= 2100 ? rawYear : now.getFullYear();
 
   const parsed = AddItemSchema.safeParse({ name: name?.trim(), quantity: quantity?.trim() || undefined });
-  if (!parsed.success) return;
+  if (!parsed.success) return { error: "El nombre del producto es obligatorio." };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { name: true } });
 

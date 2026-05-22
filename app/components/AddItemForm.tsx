@@ -13,6 +13,7 @@ type Props = {
 export default function AddItemForm({ month, year, categories, listId }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -21,7 +22,12 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
     fd.set("month", String(month));
     fd.set("year", String(year));
     startTransition(async () => {
-      await addListItem(listId, fd);
+      const result = await addListItem(listId, fd);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
       formRef.current?.reset();
       setOpen(false);
     });
@@ -43,6 +49,9 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
     <div className="bg-white rounded-2xl shadow-sm p-5">
       <h2 className="text-base font-semibold text-gray-800 mb-4">Nuevo producto</h2>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
         <input
           name="name"
           required

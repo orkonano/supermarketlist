@@ -245,7 +245,19 @@ describe("addListItem", () => {
     );
   });
 
-  it("returns early without creating when quantity exceeds 50 characters", async () => {
+  it("returns an error object when name is whitespace-only", async () => {
+    const fd = new FormData();
+    fd.set("name", "   ");
+    fd.set("month", "5");
+    fd.set("year", "2026");
+
+    const result = await addListItem("list-1", fd);
+
+    expect(result).toEqual({ error: expect.any(String) });
+    expect(vi.mocked(prisma.item.create)).not.toHaveBeenCalled();
+  });
+
+  it("returns an error object when quantity exceeds 50 characters", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
 
     const fd = new FormData();
@@ -254,8 +266,9 @@ describe("addListItem", () => {
     fd.set("month", "5");
     fd.set("year", "2026");
 
-    await addListItem("list-1", fd);
+    const result = await addListItem("list-1", fd);
 
+    expect(result).toEqual({ error: expect.any(String) });
     expect(vi.mocked(prisma.item.create)).not.toHaveBeenCalled();
   });
 
