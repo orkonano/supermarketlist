@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: false,
+  fullyParallel: false, // single shared testcontainer DB — do not parallelize
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: process.env.CI ? "github" : "list",
@@ -17,10 +17,7 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: false,
-    env: {
-      // globalSetup sets this before the webServer starts
-      TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ?? "",
-    },
+    timeout: 120_000,
   },
   projects: [
     {
