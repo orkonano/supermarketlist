@@ -14,8 +14,7 @@ function getTestUser() {
   }
 }
 
-const password = process.env.E2E_TEST_PASSWORD;
-if (!password) throw new Error("E2E_TEST_PASSWORD environment variable is not set");
+const password = process.env.E2E_TEST_PASSWORD ?? "";
 
 test.describe("unauthenticated", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
