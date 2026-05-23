@@ -52,3 +52,8 @@ next-env.d.ts
 
 # Claude Code memory
 .claude/
+
+# playwright
+/e2e/.auth/
+/playwright-report/
+/test-results/
