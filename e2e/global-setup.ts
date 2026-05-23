@@ -38,6 +38,7 @@ export default async function globalSetup() {
   });
 
   mkdirSync(path.join(process.cwd(), "e2e/.auth"), { recursive: true });
+  writeFileSync(path.join(process.cwd(), "e2e/.auth/turso-url"), dbUrl);
   writeFileSync(
     path.join(process.cwd(), "e2e/.auth/test-user.json"),
     JSON.stringify({ email, id })

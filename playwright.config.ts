@@ -14,7 +14,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: "TURSO_DATABASE_URL=$(cat e2e/.auth/turso-url) npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: false,
     timeout: 120_000,
