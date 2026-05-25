@@ -12,12 +12,11 @@ export default async function globalSetup() {
 
   console.log("Starting libSQL testcontainer...");
   const container = await new GenericContainer("ghcr.io/tursodatabase/libsql-server:latest")
-    .withExposedPorts(8080)
+    .withExposedPorts({ container: 8080, host: 18080 })
     .withWaitStrategy(Wait.forListeningPorts())
     .start();
 
-  const dbUrl = `http://${container.getHost()}:${container.getMappedPort(8080)}`;
-  process.env.TURSO_DATABASE_URL = dbUrl;
+  const dbUrl = "http://localhost:18080";
   delete process.env.TURSO_AUTH_TOKEN;
 
   console.log("Running migrations...");
@@ -38,7 +37,6 @@ export default async function globalSetup() {
   });
 
   mkdirSync(path.join(process.cwd(), "e2e/.auth"), { recursive: true });
-  writeFileSync(path.join(process.cwd(), "e2e/.auth/turso-url"), dbUrl);
   writeFileSync(
     path.join(process.cwd(), "e2e/.auth/test-user.json"),
     JSON.stringify({ email, id })

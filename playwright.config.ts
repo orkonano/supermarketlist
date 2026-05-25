@@ -14,10 +14,13 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "TURSO_DATABASE_URL=$(cat e2e/.auth/turso-url) npm run dev",
+    command: "next dev --webpack",
     url: "http://localhost:3000",
     reuseExistingServer: false,
     timeout: 120_000,
+    env: {
+      TURSO_DATABASE_URL: "http://localhost:18080",
+    },
   },
   projects: [
     {

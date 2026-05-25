@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/lists/new");
   await page.fill('input[name="name"]', listName);
   await page.click('button:has-text("Crear")');
-  await page.waitForURL(/\/lists\/.+/);
+  await page.waitForURL(url => url.pathname !== "/lists/new");
   listUrl = page.url();
 });
 
