@@ -45,5 +45,7 @@ test("can delete an item", async ({ page }) => {
   const item = page.locator("li", { hasText: "Azúcar" });
   await item.hover();
   await item.locator('button[aria-label="Eliminar producto"]').click({ force: true });
-  await expect(page.locator("text=Azúcar")).not.toBeVisible();
+  await expect(
+    page.locator("li").filter({ has: page.locator('button[aria-label="Eliminar producto"]') }).filter({ hasText: "Azúcar" })
+  ).toHaveCount(0);
 });
