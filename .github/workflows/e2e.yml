@@ -26,6 +26,7 @@ jobs:
         env:
           CI: true
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
 
       - name: Upload Playwright report on failure
         if: failure()
