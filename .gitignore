@@ -52,3 +52,14 @@ next-env.d.ts
 
 # Claude Code memory
 .claude/
+
+# playwright
+/e2e/.auth/
+/playwright-report/
+/test-results/
+
+# build caches (SWC = Next.js's internal Rust compiler cache)
+.swc/
+
+# local AI tooling
+.superpowers/
