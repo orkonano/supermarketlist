@@ -13,10 +13,7 @@ export async function emailVerificationWorkflow(
   });
 
   await sendVerificationEmail(email, name, hook.token);
-
-  // Workflow suspends here — no resources consumed while waiting
   await hook;
-
   await markUserVerified(userId);
 }
 
