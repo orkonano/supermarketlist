@@ -164,6 +164,10 @@ Run `npm test` after every change — no exceptions.
 
 Also run `npx tsc --noEmit` before every push. Vitest runs code but does not type-check it, so type errors that would fail the Vercel build (e.g. `string | undefined` passed to `encodeURIComponent`) pass tests locally without complaint.
 
+### TypeScript 5.9+ array index access
+
+`arr[n]` on a non-`as const` array whose type is inferred from an object literal can resolve as `T | undefined` (TS2532) even without `noUncheckedIndexedAccess`. This affects test fixture code written before the version bump. Fix with `!` assertions at the access site (`arr[0]!.prop`). Before assuming a new change introduced the error, run `git stash && npx tsc --noEmit` to check whether it was already there.
+
 When adding a new feature, add tests for it in the same PR. Tests live in `lib/__tests__/` and follow the existing vitest + mock pattern.
 
 When existing tests fail after a change, determine the cause before touching anything:

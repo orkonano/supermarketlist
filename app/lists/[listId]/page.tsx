@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { verifySession } from "@/lib/dal";
-import { prisma } from "@/lib/prisma";
+import { verifySession, getCurrentUser } from "@/lib/dal";
+import { serviceGetListForMember } from "@/lib/list-service";
 import { logout } from "@/lib/auth-actions";
 import { getListItems } from "@/lib/list-actions";
 import { normalizeMonthYear } from "@/lib/date-utils";
@@ -23,14 +23,8 @@ export default async function ListPage({
   const session = await verifySession();
 
   const [list, user, items] = await Promise.all([
-    prisma.list.findUnique({
-      where: { id: listId },
-      include: { members: { where: { userId: session.userId } } },
-    }),
-    prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { name: true },
-    }),
+    serviceGetListForMember(listId, session.userId),
+    getCurrentUser(session.userId),
     getListItems(listId, month, year),
   ]);
 

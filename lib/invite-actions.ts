@@ -16,28 +16,36 @@ export type InviteResult =
   | { success: true }
   | { error: string };
 
-export async function inviteToList(listId: string, email: string): Promise<InviteResult> {
-  const session = await verifySession();
+type ValidateResult = { error: string } | { invitee: { id: string } | null };
 
-  const parsed = EmailSchema.safeParse(email);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
+async function validateInviteCanBeSent(listId: string, email: string, inviterId: string): Promise<ValidateResult> {
   const list = await prisma.list.findUnique({ where: { id: listId }, select: { ownerId: true } });
-  if (!list || list.ownerId !== session.userId) return { error: "Solo el propietario de la lista puede invitar personas." };
+  if (!list || list.ownerId !== inviterId) return { error: "Solo el propietario de la lista puede invitar personas." };
 
-  const existing = await prisma.listInvite.findFirst({
-    where: { listId, email, accepted: false },
-  });
+  const existing = await prisma.listInvite.findFirst({ where: { listId, email, accepted: false } });
   if (existing) return { error: "Ya se envió una invitación a este correo electrónico." };
 
   const invitee = await prisma.user.findUnique({ where: { email } });
-  if (invitee && invitee.id === session.userId) return { error: "No podés invitarte a vos mismo." };
+  if (invitee?.id === inviterId) return { error: "No podés invitarte a vos mismo." };
   if (invitee) {
     const alreadyMember = await prisma.listMember.findUnique({
       where: { listId_userId: { listId, userId: invitee.id } },
     });
     if (alreadyMember) return { error: "Este usuario ya es miembro de la lista." };
   }
+
+  return { invitee: invitee ?? null };
+}
+
+export async function inviteToList(listId: string, email: string): Promise<InviteResult> {
+  const session = await verifySession();
+
+  const parsed = EmailSchema.safeParse(email);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const validation = await validateInviteCanBeSent(listId, email, session.userId);
+  if ("error" in validation) return validation;
+  const { invitee } = validation;
 
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MS);

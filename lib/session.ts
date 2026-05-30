@@ -23,6 +23,7 @@ export async function decrypt(session: string | undefined = "") {
     const { payload } = await jwtVerify(session, encodedKey, {
       algorithms: ["HS256"],
     });
+    if (typeof payload.userId !== "string") return null;
     return payload as SessionPayload;
   } catch (error) {
     console.debug("Session decrypt failed:", error instanceof Error ? error.message : "unknown");
@@ -30,18 +31,22 @@ export async function decrypt(session: string | undefined = "") {
   }
 }
 
+export function sessionCookieOptions(expires: Date) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    expires,
+    sameSite: "lax" as const,
+    path: "/",
+  };
+}
+
 export async function createSession(userId: string) {
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
   const session = await encrypt({ userId, expiresAt });
   const cookieStore = await cookies();
 
-  cookieStore.set("session", session, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    sameSite: "lax",
-    path: "/",
-  });
+  cookieStore.set("session", session, sessionCookieOptions(expiresAt));
 }
 
 export async function deleteSession() {

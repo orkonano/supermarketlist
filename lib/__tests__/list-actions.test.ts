@@ -1,18 +1,17 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("../dal", () => ({ verifySession: vi.fn() }));
+vi.mock("../dal", () => ({ verifySession: vi.fn(), getCurrentUser: vi.fn() }));
 vi.mock("../prisma", () => ({
   prisma: {
     list: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
     listMember: { findUnique: vi.fn(), create: vi.fn() },
     item: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findMany: vi.fn() },
-    user: { findUniqueOrThrow: vi.fn() },
   },
 }));
 
 import { createList, updateList, deleteList, getUserLists, getListItems, addListItem, toggleListItem, deleteListItem } from "../list-actions";
-import { verifySession } from "../dal";
+import { verifySession, getCurrentUser } from "../dal";
 import { prisma } from "../prisma";
 
 const SESSION = { userId: "user-1" };
@@ -166,7 +165,7 @@ describe("getListItems", () => {
 describe("addListItem", () => {
   it("creates an item using the session user's name as addedBy", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-    vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({ id: "user-1", name: "SessionUser" } as never);
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "SessionUser", emailVerified: false });
 
     const fd = new FormData();
     fd.set("name", "Eggs");
@@ -184,7 +183,7 @@ describe("addListItem", () => {
 
   it("falls back to current month/year when month/year are NaN", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-    vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({ id: "user-1", name: "SessionUser" } as never);
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "SessionUser", emailVerified: false });
 
     const fd = new FormData();
     fd.set("name", "Eggs");
@@ -206,7 +205,7 @@ describe("addListItem", () => {
 
   it("falls back to current month/year when month is out of range", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-    vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({ id: "user-1", name: "SessionUser" } as never);
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "SessionUser", emailVerified: false });
 
     const fd = new FormData();
     fd.set("name", "Eggs");
@@ -228,7 +227,7 @@ describe("addListItem", () => {
 
   it("ignores any addedBy supplied in the form and uses the session name instead", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-    vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({ id: "user-1", name: "RealUser" } as never);
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "RealUser", emailVerified: false });
 
     const fd = new FormData();
     fd.set("name", "Milk");
@@ -272,7 +271,7 @@ describe("addListItem", () => {
 
   it("accepts quantity at exactly 50 characters", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-    vi.mocked(prisma.user.findUniqueOrThrow).mockResolvedValue({ id: "user-1", name: "SessionUser" } as never);
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "SessionUser", emailVerified: false });
 
     const fd = new FormData();
     fd.set("name", "Eggs");

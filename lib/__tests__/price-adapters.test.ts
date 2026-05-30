@@ -257,7 +257,7 @@ describe("cotoAdapter", () => {
 
   it("returns empty when there are no records in the ResultsList", async () => {
     const noRecords = cotoResponse();
-    noRecords.contents[0].MainContent[1].contents[0].records = [];
+    noRecords.contents[0]!.MainContent[1]!.contents![0]!.records = [];
     vi.stubGlobal("fetch", mockFetch(noRecords));
 
     const result = await cotoAdapter("leche");
@@ -267,7 +267,7 @@ describe("cotoAdapter", () => {
 
   it("returns empty when the SKU sub-record is missing", async () => {
     const noSku = cotoResponse();
-    noSku.contents[0].MainContent[1].contents[0].records[0].records = [];
+    noSku.contents[0]!.MainContent[1]!.contents![0]!.records![0]!.records = [];
     vi.stubGlobal("fetch", mockFetch(noSku));
 
     const result = await cotoAdapter("leche");
