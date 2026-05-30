@@ -1,8 +1,10 @@
 import { z } from "zod";
 
+const emailField = z.email({ message: "Ingresá un correo electrónico válido." }).trim();
+
 export const SignupFormSchema = z.object({
   name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }).max(100, { message: "El nombre no puede superar los 100 caracteres." }).trim(),
-  email: z.email({ message: "Ingresá un correo electrónico válido." }).trim(),
+  email: emailField,
   password: z
     .string()
     .min(8, { message: "Debe tener al menos 8 caracteres." })
@@ -13,7 +15,7 @@ export const SignupFormSchema = z.object({
 });
 
 export const LoginFormSchema = z.object({
-  email: z.email({ message: "Ingresá un correo electrónico válido." }).trim(),
+  email: emailField,
   password: z.string().min(1, { message: "La contraseña es obligatoria." }).trim(),
 });
 
