@@ -18,6 +18,32 @@ type Props = {
   items: Item[];
 };
 
+function ProductInfo({ brand, productName, url }: { brand?: string | null; productName?: string | null; url?: string | null }) {
+  if (!brand && !productName) return null;
+  const content = (
+    <>
+      {brand && <span className="font-medium text-gray-500">{brand}</span>}
+      {brand && productName && " · "}
+      {productName && (
+        <span className="truncate block" title={productName}>
+          {productName.length > 30 ? productName.slice(0, 30) + "…" : productName}
+        </span>
+      )}
+    </>
+  );
+  return (
+    <span className="text-xs text-gray-400 leading-tight max-w-[120px] text-right">
+      {url ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+          {content}
+        </a>
+      ) : (
+        content
+      )}
+    </span>
+  );
+}
+
 export default function PriceComparison({ listId, items }: Props) {
   const [prices, setPrices] = useState<ItemPrices | null>(null);
   const [loading, setLoading] = useState(false);
@@ -139,50 +165,7 @@ export default function PriceComparison({ listId, items }: Props) {
                                   r.priceText
                                 )}
                               </span>
-                              {(r.brand || r.productName) && (
-                                <span className="text-xs text-gray-400 leading-tight max-w-[120px] text-right">
-                                  {r.productUrl ? (
-                                    <a
-                                      href={r.productUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="hover:underline"
-                                    >
-                                      {r.brand && (
-                                        <span className="font-medium text-gray-500">{r.brand}</span>
-                                      )}
-                                      {r.brand && r.productName && " · "}
-                                      {r.productName && (
-                                        <span
-                                          className="truncate block"
-                                          title={r.productName}
-                                        >
-                                          {r.productName.length > 30
-                                            ? r.productName.slice(0, 30) + "…"
-                                            : r.productName}
-                                        </span>
-                                      )}
-                                    </a>
-                                  ) : (
-                                    <>
-                                      {r.brand && (
-                                        <span className="font-medium text-gray-500">{r.brand}</span>
-                                      )}
-                                      {r.brand && r.productName && " · "}
-                                      {r.productName && (
-                                        <span
-                                          className="truncate block"
-                                          title={r.productName}
-                                        >
-                                          {r.productName.length > 30
-                                            ? r.productName.slice(0, 30) + "…"
-                                            : r.productName}
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </span>
-                              )}
+                              <ProductInfo brand={r.brand} productName={r.productName} url={r.productUrl} />
                             </div>
                           ) : (
                             <span className="text-gray-300 tabular-nums">—</span>
