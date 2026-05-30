@@ -15,17 +15,15 @@ test("can add an item to a list", async ({ page }) => {
   await page.goto(listUrl);
   await page.click('button:has-text("Agregar producto")');
   await page.fill('input[placeholder="Nombre del producto *"]', "Leche");
-  await page.fill('input[placeholder="Tu nombre *"]', "E2E");
   await page.click('button:has-text("Agregar")');
   await expect(page.locator("text=Leche")).toBeVisible();
-  await expect(page.locator("text=Agregado por E2E")).toBeVisible();
+  await expect(page.locator("text=Agregado por E2E Test User")).toBeVisible();
 });
 
 test("can toggle an item as checked", async ({ page }) => {
   await page.goto(listUrl);
   await page.click('button:has-text("Agregar producto")');
   await page.fill('input[placeholder="Nombre del producto *"]', "Pan");
-  await page.fill('input[placeholder="Tu nombre *"]', "E2E");
   await page.click('button:has-text("Agregar")');
   await expect(page.locator("text=Pan")).toBeVisible();
 
@@ -38,7 +36,6 @@ test("can delete an item", async ({ page }) => {
   await page.goto(listUrl);
   await page.click('button:has-text("Agregar producto")');
   await page.fill('input[placeholder="Nombre del producto *"]', "Azúcar");
-  await page.fill('input[placeholder="Tu nombre *"]', "E2E");
   await page.click('button:has-text("Agregar")');
   await expect(page.locator("text=Azúcar")).toBeVisible();
 
