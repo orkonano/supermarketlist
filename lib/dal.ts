@@ -12,12 +12,12 @@ export const verifySession = cache(async () => {
     redirect("/login");
   }
 
-  return { isAuth: true, userId: session.userId };
+  return { userId: session.userId };
 });
 
 export const getOptionalSession = cache(async () => {
   const cookie = (await cookies()).get("session")?.value;
   const session = await decrypt(cookie);
   if (!session?.userId) return null;
-  return { isAuth: true, userId: session.userId };
+  return { userId: session.userId };
 });

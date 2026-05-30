@@ -5,6 +5,7 @@ import { prisma } from "./prisma";
 import { verifySession } from "./dal";
 
 const MAX_KEYS_PER_USER = 10;
+const API_KEY_PREFIX = "sml_";
 
 export async function createApiKey(name: string) {
   const session = await verifySession();
@@ -17,7 +18,7 @@ export async function createApiKey(name: string) {
     return { error: `Alcanzaste el límite de ${MAX_KEYS_PER_USER} API Keys.` };
   }
 
-  const rawKey = "sml_" + randomBytes(32).toString("hex");
+  const rawKey = API_KEY_PREFIX + randomBytes(32).toString("hex");
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
 
   await prisma.apiKey.create({

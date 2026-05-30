@@ -24,7 +24,8 @@ export async function decrypt(session: string | undefined = "") {
       algorithms: ["HS256"],
     });
     return payload as SessionPayload;
-  } catch {
+  } catch (error) {
+    console.debug("Session decrypt failed:", error instanceof Error ? error.message : "unknown");
     return null;
   }
 }

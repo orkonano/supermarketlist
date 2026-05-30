@@ -24,7 +24,7 @@ import { prisma } from "../prisma";
 import { start } from "workflow/api";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
-const SESSION = { isAuth: true as const, userId: "user-1" };
+const SESSION = { userId: "user-1" };
 
 const fakeList = { id: "list-1", name: "Home", ownerId: "user-1" };
 const fakeInviter = { name: "Alice" };

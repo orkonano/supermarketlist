@@ -11,7 +11,7 @@ import { createApiKey, deleteApiKey, getUserApiKeys } from "../api-key-actions";
 import { verifySession } from "../dal";
 import { prisma } from "../prisma";
 
-const SESSION = { isAuth: true as const, userId: "user-1" };
+const SESSION = { userId: "user-1" };
 
 beforeEach(() => {
   vi.clearAllMocks();

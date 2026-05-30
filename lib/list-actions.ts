@@ -32,8 +32,8 @@ export async function createList(name: string) {
 
 export async function updateList(listId: string, name: string) {
   const session = await verifySession();
-  ListNameSchema.parse(name);
-  await serviceUpdateList(listId, session.userId, name);
+  const validName = ListNameSchema.parse(name);
+  await serviceUpdateList(listId, session.userId, validName);
   revalidatePath("/lists");
   revalidatePath(`/lists/${listId}`);
 }

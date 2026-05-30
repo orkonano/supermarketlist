@@ -15,6 +15,17 @@ const VTEX_HOSTS: Record<"disco" | "carrefour", string> = {
   carrefour: "https://www.carrefour.com.ar",
 };
 
+function isValidPrice(price: number | null | undefined): price is number {
+  return price != null && !isNaN(price) && price > 0;
+}
+
+const COTO_ATTRS = {
+  PRICE:        "sku.activePrice",
+  DISPLAY_NAME: "product.displayName",
+  BRAND:        "product.MARCA",
+  IMAGE_URL:    "product.mediumImage.url",
+} as const;
+
 export async function vtexAdapter(
   store: "disco" | "carrefour",
   query: string
@@ -32,7 +43,7 @@ export async function vtexAdapter(
 
     const rawPrice: number | null =
       product.items?.[0]?.sellers?.[0]?.commertialOffer?.Price ?? null;
-    const price = rawPrice != null && rawPrice > 0 ? rawPrice : null;
+    const price = isValidPrice(rawPrice) ? rawPrice : null;
 
     return {
       supermarket: store,
@@ -66,9 +77,9 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
     if (!skuRecord) return empty("coto");
 
     const attrs: Record<string, string[]> = skuRecord.attributes ?? {};
-    const priceStr = attrs["sku.activePrice"]?.[0];
+    const priceStr = attrs[COTO_ATTRS.PRICE]?.[0];
     const rawPrice = priceStr ? parseFloat(priceStr) : null;
-    const price = rawPrice != null && !isNaN(rawPrice) && rawPrice > 0 ? rawPrice : null;
+    const price = isValidPrice(rawPrice) ? rawPrice : null;
 
     const productUrl = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}`;
 
@@ -76,10 +87,10 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
       supermarket: "coto",
       price,
       priceText: price != null ? formatARS(price) : null,
-      productName: attrs["product.displayName"]?.[0] ?? null,
-      brand: attrs["product.MARCA"]?.[0] ?? null,
+      productName: attrs[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? null,
+      brand: attrs[COTO_ATTRS.BRAND]?.[0] ?? null,
       productUrl,
-      imageUrl: attrs["product.mediumImage.url"]?.[0] ?? null,
+      imageUrl: attrs[COTO_ATTRS.IMAGE_URL]?.[0] ?? null,
     };
   } catch {
     return empty("coto");

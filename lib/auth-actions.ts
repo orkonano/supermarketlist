@@ -71,11 +71,11 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
 
   await createSession(user.id);
 
-  const inviteToken = formData.get("inviteToken") as string | null;
-  if (inviteToken) {
-    redirect(`/api/accept-invite?token=${encodeURIComponent(inviteToken)}`);
-  }
+  redirectAfterLogin(formData.get("inviteToken") as string | null);
+}
 
+function redirectAfterLogin(inviteToken: string | null): never {
+  if (inviteToken) redirect(`/api/accept-invite?token=${encodeURIComponent(inviteToken)}`);
   redirect("/lists");
 }
 
