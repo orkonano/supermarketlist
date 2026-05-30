@@ -1,9 +1,11 @@
 import { prisma } from "./prisma";
 import { ServiceError } from "./errors";
+import { ERRORS } from "./constants/errors";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 export async function assertOwner(listId: string, userId: string) {
   const list = await prisma.list.findUnique({ where: { id: listId } });
-  if (!list || list.ownerId !== userId) throw new ServiceError(403, "No tenés permiso para realizar esta acción.");
+  if (!list || list.ownerId !== userId) throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
   return list;
 }
 
@@ -16,11 +18,15 @@ export async function assertMember(listId: string, userId: string) {
   // Self-heal: owners created before the ListMember invariant was enforced may lack a record
   const list = await prisma.list.findUnique({ where: { id: listId } });
   if (list?.ownerId === userId) {
-    await prisma.listMember.create({ data: { listId, userId } }).catch(() => {});
+    try {
+      await prisma.listMember.create({ data: { listId, userId } });
+    } catch (err) {
+      if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) throw err;
+    }
     return;
   }
 
-  throw new ServiceError(403, "No tenés permiso para realizar esta acción.");
+  throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
 }
 
 export async function serviceCreateList(userId: string, name: string) {

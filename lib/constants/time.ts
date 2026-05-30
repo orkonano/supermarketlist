@@ -1,0 +1,9 @@
+export const SESSION_DURATION_DAYS = 7;
+export const SESSION_DURATION_MS = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
+
+export const INVITE_EXPIRY_DAYS = 7;
+export const INVITE_EXPIRY_MS = INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
+export const PRICE_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+
+export const LAST_USED_UPDATE_INTERVAL_MS = 60 * 60 * 1000;

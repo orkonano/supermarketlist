@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getItemPrices } from "@/lib/price-actions";
 import type { ItemPrices } from "@/lib/price-service";
 import { formatARS } from "@/lib/price-adapters";
@@ -22,34 +22,35 @@ export default function PriceComparison({ listId, items }: Props) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
 
+  const itemNames = useMemo(() => items.map((i) => i.name), [items]);
+
   const fetchPrices = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getItemPrices(listId, items.map((i) => i.name));
+      const result = await getItemPrices(listId, itemNames);
       setPrices(result);
     } finally {
       setLoading(false);
     }
-  }, [listId, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [listId, itemNames]);
 
   // Auto-fetch on mount and whenever the item count changes (new item added/removed)
   useEffect(() => {
     fetchPrices();
   }, [fetchPrices]);
 
-  const totals =
-    prices &&
-    SUPERMARKETS.map(({ key }) => ({
+  const { totals, minTotal } = useMemo(() => {
+    if (!prices) return { totals: null, minTotal: null };
+    const totals = SUPERMARKETS.map(({ key }) => ({
       key,
       total: items.reduce((sum, item) => {
         const r = prices[item.name]?.find((p) => p.supermarket === key);
         return sum + (r?.price ?? 0);
       }, 0),
     }));
-
-  const minTotal = totals
-    ? Math.min(...totals.map((t) => t.total).filter((t) => t > 0))
-    : null;
+    const minTotal = Math.min(...totals.map((t) => t.total).filter((t) => t > 0));
+    return { totals, minTotal };
+  }, [prices, items]);
 
   if (!open) {
     return (
