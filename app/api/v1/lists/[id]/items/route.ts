@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiRoute } from "@/lib/api-route";
 import { serviceGetListItems, serviceAddListItem } from "@/lib/list-service";
+import { normalizeMonthYear } from "@/lib/date-utils";
 
 const AddItemSchema = z.object({
   name: z.string().min(1),
@@ -10,11 +11,10 @@ const AddItemSchema = z.object({
 
 export const GET = apiRoute(async (req, { user }, { id }) => {
   const url = new URL(req.url);
-  const now = new Date();
-  const rawMonth = parseInt(url.searchParams.get("month") ?? "", 10);
-  const rawYear = parseInt(url.searchParams.get("year") ?? "", 10);
-  const month = rawMonth >= 1 && rawMonth <= 12 ? rawMonth : now.getMonth() + 1;
-  const year = rawYear >= 2000 && rawYear <= 2100 ? rawYear : now.getFullYear();
+  const { month, year } = normalizeMonthYear(
+    url.searchParams.get("month"),
+    url.searchParams.get("year")
+  );
 
   const items = await serviceGetListItems(id, user.id, month, year);
   return Response.json(items);

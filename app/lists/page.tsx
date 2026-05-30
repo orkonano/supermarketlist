@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getUserLists, deleteList } from "@/lib/list-actions";
-import { verifySession } from "@/lib/dal";
+import { verifySession, getCurrentUser } from "@/lib/dal";
 import { logout } from "@/lib/auth-actions";
-import { prisma } from "@/lib/prisma";
 
 export default async function ListsPage({
   searchParams,
@@ -13,10 +12,7 @@ export default async function ListsPage({
   const session = await verifySession();
   const [lists, user] = await Promise.all([
     getUserLists(),
-    prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { name: true, emailVerified: true },
-    }),
+    getCurrentUser(session.userId),
   ]);
 
   return (

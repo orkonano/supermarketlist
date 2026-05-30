@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decrypt, encrypt } from "@/lib/session";
+import { decrypt, encrypt, sessionCookieOptions } from "@/lib/session";
 import { cookies } from "next/headers";
 import { SESSION_DURATION_MS } from "@/lib/constants/time";
 
@@ -8,7 +8,7 @@ const publicRoutes = ["/", "/login", "/signup"];
 
 export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  const isProtectedRoute = protectedRoutes.includes(path);
+  const isProtectedRoute = protectedRoutes.some((r) => path === r || path.startsWith(r + "/"));
   const isPublicRoute = publicRoutes.includes(path);
 
   const cookie = (await cookies()).get("session")?.value;
@@ -27,13 +27,7 @@ export default async function proxy(req: NextRequest) {
   if (session?.userId && cookie) {
     const newExpiry = new Date(Date.now() + SESSION_DURATION_MS);
     const refreshed = await encrypt({ userId: session.userId, expiresAt: newExpiry });
-    res.cookies.set("session", refreshed, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      expires: newExpiry,
-      sameSite: "lax",
-      path: "/",
-    });
+    res.cookies.set("session", refreshed, sessionCookieOptions(newExpiry));
   }
 
   return res;

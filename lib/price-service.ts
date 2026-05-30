@@ -3,6 +3,7 @@ import {
   vtexAdapter,
   cotoAdapter,
   empty,
+  SUPERMARKETS,
   type PriceResult,
   type Supermarket,
 } from "./price-adapters";
@@ -10,8 +11,6 @@ import { ensureMember } from "./list-service";
 import { PRICE_CACHE_TTL_MS } from "./constants/time";
 
 export type ItemPrices = Record<string, PriceResult[]>;
-
-const SUPERMARKETS: Supermarket[] = ["coto", "disco", "carrefour"];
 
 function cacheKey(query: string, supermarket: string): string {
   return JSON.stringify([query, supermarket]);
@@ -48,25 +47,31 @@ async function loadFreshFromCache(queries: string[]): Promise<Map<string, PriceR
   return fresh;
 }
 
+async function fetchAndCache(
+  query: string,
+  supermarket: Supermarket,
+  fresh: Map<string, PriceResult>
+): Promise<void> {
+  const r = supermarket === "coto"
+    ? await cotoAdapter(query)
+    : await vtexAdapter(supermarket, query);
+  fresh.set(cacheKey(query, supermarket), r);
+  await prisma.priceCache.upsert({
+    where: { query_supermarket: { query, supermarket } },
+    create: { query, supermarket, ...priceResultToRecord(r) },
+    update: { ...priceResultToRecord(r), fetchedAt: new Date() },
+  });
+}
+
 async function fetchAndCacheMissing(
   queries: string[],
   fresh: Map<string, PriceResult>
 ): Promise<void> {
   const tasks: Promise<void>[] = [];
   for (const query of queries) {
-    for (const supermarket of SUPERMARKETS) {
+    for (const { key: supermarket } of SUPERMARKETS) {
       if (fresh.has(cacheKey(query, supermarket))) continue;
-      const task = (
-        supermarket === "coto" ? cotoAdapter(query) : vtexAdapter(supermarket, query)
-      ).then(async (r) => {
-        fresh.set(cacheKey(query, supermarket), r);
-        await prisma.priceCache.upsert({
-          where: { query_supermarket: { query, supermarket } },
-          create: { query, supermarket, ...priceResultToRecord(r) },
-          update: { ...priceResultToRecord(r), fetchedAt: new Date() },
-        });
-      });
-      tasks.push(task);
+      tasks.push(fetchAndCache(query, supermarket, fresh));
     }
   }
   await Promise.all(tasks);
@@ -76,7 +81,7 @@ function buildResult(itemNames: string[], fresh: Map<string, PriceResult>): Item
   const result: ItemPrices = {};
   for (const name of itemNames) {
     const query = name.toLowerCase().trim();
-    result[name] = SUPERMARKETS.map((s) => fresh.get(cacheKey(query, s)) ?? empty(s));
+    result[name] = SUPERMARKETS.map(({ key }) => fresh.get(cacheKey(query, key)) ?? empty(key));
   }
   return result;
 }

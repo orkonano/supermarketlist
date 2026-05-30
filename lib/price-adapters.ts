@@ -1,5 +1,11 @@
 export type Supermarket = "coto" | "disco" | "carrefour";
 
+export const SUPERMARKETS: { key: Supermarket; label: string }[] = [
+  { key: "coto", label: "Coto" },
+  { key: "disco", label: "Disco" },
+  { key: "carrefour", label: "Carrefour" },
+];
+
 export type PriceResult = {
   supermarket: Supermarket;
   price: number | null;
@@ -8,6 +14,26 @@ export type PriceResult = {
   brand: string | null;
   productUrl: string | null;
   imageUrl: string | null;
+};
+
+type VtexProduct = {
+  productName?: string;
+  brand?: string;
+  link?: string;
+  items?: Array<{
+    images?: Array<{ imageUrl?: string }>;
+    sellers?: Array<{ commertialOffer?: { Price?: number } }>;
+  }>;
+};
+
+type CotoEndecaResponse = {
+  contents?: Array<{
+    MainContent?: Array<{
+      contents?: Array<{
+        records?: Array<{ records?: Array<{ attributes?: Record<string, string[]> }> }>;
+      }>;
+    }>;
+  }>;
 };
 
 const VTEX_HOSTS: Record<"disco" | "carrefour", string> = {
@@ -37,10 +63,11 @@ export async function vtexAdapter(
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return empty(store);
 
-    const data = await res.json();
-    const product = Array.isArray(data) ? data[0] : null;
+    const data: unknown = await res.json();
+    const product = Array.isArray(data) ? (data[0] as VtexProduct) : null;
     if (!product) return empty(store);
 
+    // VTEX API spells this as "commertialOffer" (sic)
     const rawPrice: number | null =
       product.items?.[0]?.sellers?.[0]?.commertialOffer?.Price ?? null;
     const price = isValidPrice(rawPrice) ? rawPrice : null;
@@ -66,13 +93,13 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return empty("coto");
 
-    const data = await res.json();
+    const data: unknown = await res.json();
 
     // Endeca ATG response tree:
     // contents[0].MainContent[1].contents[0] = ResultsList
     //   .records[0]            = product-level group record
     //     .records[0]          = SKU record with full attributes (flat dot-key strings)
-    const resultList = data?.contents?.[0]?.MainContent?.[1]?.contents?.[0];
+    const resultList = (data as CotoEndecaResponse)?.contents?.[0]?.MainContent?.[1]?.contents?.[0];
     const skuRecord = resultList?.records?.[0]?.records?.[0];
     if (!skuRecord) return empty("coto");
 
