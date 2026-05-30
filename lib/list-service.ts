@@ -15,7 +15,8 @@ export async function ensureMember(listId: string, userId: string) {
   });
   if (member) return;
 
-  // Self-heal: owners created before the ListMember invariant was enforced may lack a record
+  // TODO: remove this self-heal once the ListMember backfill is fully verified in production.
+  // Owners created before the ListMember write-invariant was enforced may lack a record.
   const list = await prisma.list.findUnique({ where: { id: listId } });
   if (list?.ownerId === userId) {
     try {
@@ -27,6 +28,13 @@ export async function ensureMember(listId: string, userId: string) {
   }
 
   throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
+}
+
+export async function serviceGetListForMember(listId: string, userId: string) {
+  return prisma.list.findUnique({
+    where: { id: listId },
+    include: { members: { where: { userId } } },
+  });
 }
 
 export async function serviceCreateList(userId: string, name: string) {

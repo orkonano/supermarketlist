@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "./prisma";
-import { verifySession } from "./dal";
+import { verifySession, getCurrentUser } from "./dal";
 import { normalizeMonthYear } from "./date-utils";
 import {
   serviceCreateList,
@@ -21,6 +20,18 @@ const AddItemSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio."),
   quantity: z.string().max(50, "La cantidad no puede superar los 50 caracteres.").optional(),
 });
+
+function parseAddItemFormData(formData: FormData) {
+  return {
+    name: formData.get("name") as string,
+    quantity: formData.get("quantity") as string,
+    category: formData.get("category") as string,
+    ...normalizeMonthYear(
+      formData.get("month") as string,
+      formData.get("year") as string
+    ),
+  };
+}
 
 export async function createList(name: string) {
   const session = await verifySession();
@@ -56,19 +67,13 @@ export async function getListItems(listId: string, month: number, year: number) 
 
 export async function addListItem(listId: string, formData: FormData) {
   const session = await verifySession();
-
-  const name = formData.get("name") as string;
-  const quantity = formData.get("quantity") as string;
-  const category = formData.get("category") as string;
-  const { month, year } = normalizeMonthYear(
-    formData.get("month") as string,
-    formData.get("year") as string
-  );
+  const { name, quantity, category, month, year } = parseAddItemFormData(formData);
 
   const parsed = AddItemSchema.safeParse({ name: name?.trim(), quantity: quantity?.trim() || undefined });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { name: true } });
+  const user = await getCurrentUser(session.userId);
+  if (!user) return { error: "No se encontró el usuario." };
 
   await serviceAddListItem(listId, session.userId, user.name, {
     name: parsed.data.name,
