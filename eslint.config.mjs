@@ -44,6 +44,14 @@ const eslintConfig = defineConfig([
       "sonarjs/cognitive-complexity": "off",
     },
   },
+  // e2e infrastructure: globalThis container passing requires `any` (no clean alternative
+  // without a full global type declaration for testcontainer lifecycle hooks)
+  {
+    files: ["e2e/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -61,8 +61,9 @@ export default function PriceComparison({ listId, items }: Props) {
     }
   }, [listId, itemNames]);
 
-  // Auto-fetch on mount and whenever the item count changes (new item added/removed)
+  // fetchPrices is async (useCallback); setState is not called synchronously here.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPrices();
   }, [fetchPrices]);
 
