@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { ServiceError } from "./errors";
 import { ERRORS } from "./constants/errors";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 export async function assertOwner(listId: string, userId: string) {
   const list = await prisma.list.findUnique({ where: { id: listId } });
@@ -17,7 +18,11 @@ export async function assertMember(listId: string, userId: string) {
   // Self-heal: owners created before the ListMember invariant was enforced may lack a record
   const list = await prisma.list.findUnique({ where: { id: listId } });
   if (list?.ownerId === userId) {
-    await prisma.listMember.create({ data: { listId, userId } }).catch(() => {});
+    try {
+      await prisma.listMember.create({ data: { listId, userId } });
+    } catch (err) {
+      if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) throw err;
+    }
     return;
   }
 
