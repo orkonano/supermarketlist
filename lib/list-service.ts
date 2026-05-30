@@ -9,7 +9,7 @@ export async function assertOwner(listId: string, userId: string) {
   return list;
 }
 
-export async function assertMember(listId: string, userId: string) {
+export async function ensureMember(listId: string, userId: string) {
   const member = await prisma.listMember.findUnique({
     where: { listId_userId: { listId, userId } },
   });
@@ -51,7 +51,7 @@ export async function serviceGetUserLists(userId: string) {
 }
 
 export async function serviceGetList(listId: string, userId: string) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.list.findUnique({
     where: { id: listId },
     include: {
@@ -75,7 +75,7 @@ export async function serviceDeleteList(listId: string, userId: string) {
 }
 
 export async function serviceGetListItems(listId: string, userId: string, month: number, year: number) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.item.findMany({
     where: { listId, month, year },
     orderBy: [{ category: "asc" }, { createdAt: "asc" }],
@@ -88,7 +88,7 @@ export async function serviceAddListItem(
   addedBy: string,
   data: { name: string; quantity?: string; category?: string; month: number; year: number }
 ) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.item.create({
     data: {
       name: data.name,
@@ -103,12 +103,12 @@ export async function serviceAddListItem(
 }
 
 export async function serviceToggleListItem(listId: string, userId: string, itemId: string, checked: boolean) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.item.update({ where: { id: itemId, listId }, data: { checked } });
 }
 
 export async function serviceDeleteListItem(listId: string, userId: string, itemId: string) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.item.delete({ where: { id: itemId, listId } });
 }
 
@@ -118,6 +118,6 @@ export async function serviceUpdateListItem(
   itemId: string,
   data: { name?: string; quantity?: string | null; category?: string | null; checked?: boolean }
 ) {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   return prisma.item.update({ where: { id: itemId, listId }, data });
 }

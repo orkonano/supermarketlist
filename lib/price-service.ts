@@ -6,7 +6,7 @@ import {
   type PriceResult,
   type Supermarket,
 } from "./price-adapters";
-import { assertMember } from "./list-service";
+import { ensureMember } from "./list-service";
 import { PRICE_CACHE_TTL_MS } from "./constants/time";
 
 export type ItemPrices = Record<string, PriceResult[]>;
@@ -86,7 +86,7 @@ export async function serviceGetItemPrices(
   userId: string,
   itemNames: string[]
 ): Promise<ItemPrices> {
-  await assertMember(listId, userId);
+  await ensureMember(listId, userId);
   const queries = [...new Set(itemNames.map((n) => n.toLowerCase().trim()))];
   const fresh = await loadFreshFromCache(queries);
   await fetchAndCacheMissing(queries, fresh);

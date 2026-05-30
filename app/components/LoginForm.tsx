@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { login } from "@/lib/auth-actions";
+import { buildInviteLink } from "@/lib/auth-utils";
 
 export default function LoginForm({ inviteToken }: { inviteToken?: string }) {
   const [state, action, pending] = useActionState(login, undefined);
@@ -42,7 +43,7 @@ export default function LoginForm({ inviteToken }: { inviteToken?: string }) {
 
       <p className="text-center text-sm text-gray-600">
         ¿No tenés cuenta?{" "}
-        <Link href={inviteToken ? `/signup?inviteToken=${encodeURIComponent(inviteToken)}` : "/signup"} className="text-blue-600 hover:underline font-medium">
+        <Link href={buildInviteLink("/signup", inviteToken)} className="text-blue-600 hover:underline font-medium">
           Registrate
         </Link>
       </p>

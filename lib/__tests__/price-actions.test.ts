@@ -22,7 +22,7 @@ import { verifySession } from "../dal";
 import { prisma } from "../prisma";
 import { vtexAdapter, cotoAdapter, empty } from "../price-adapters";
 
-const SESSION = { isAuth: true as const, userId: "user-1" };
+const SESSION = { userId: "user-1" };
 const MEMBER = { listId: "list-1", userId: "user-1", joinedAt: new Date() };
 
 const FRESH = new Date(); // within TTL

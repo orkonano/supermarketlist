@@ -93,12 +93,7 @@ export default async function ListsPage({
                     >
                       Renombrar
                     </Link>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deleteList(list.id);
-                      }}
-                    >
+                    <form action={deleteList.bind(null, list.id)}>
                       <button
                         type="submit"
                         className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded transition-colors"

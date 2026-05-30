@@ -51,7 +51,8 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
     prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
   ]);
 
-  if (!listDetails || !inviter) throw new Error("Lista o usuario eliminado durante la invitación.");
+  if (!listDetails) throw new Error("La lista fue eliminada durante la invitación.");
+  if (!inviter) throw new Error("El usuario fue eliminado durante la invitación.");
 
   await start(listInviteWorkflow, [email, inviter.name, listDetails.name, token, !!invitee]);
 

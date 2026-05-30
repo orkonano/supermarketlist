@@ -15,7 +15,7 @@ import { createList, updateList, deleteList, getUserLists, getListItems, addList
 import { verifySession } from "../dal";
 import { prisma } from "../prisma";
 
-const SESSION = { isAuth: true as const, userId: "user-1" };
+const SESSION = { userId: "user-1" };
 
 const fakeList = {
   id: "list-1",
@@ -258,8 +258,6 @@ describe("addListItem", () => {
   });
 
   it("returns an error object when quantity exceeds 50 characters", async () => {
-    vi.mocked(prisma.listMember.findUnique).mockResolvedValue({ listId: "list-1", userId: "user-1", joinedAt: new Date() });
-
     const fd = new FormData();
     fd.set("name", "Eggs");
     fd.set("quantity", "a".repeat(51));

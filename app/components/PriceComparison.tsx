@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { getItemPrices } from "@/lib/price-actions";
 import type { ItemPrices } from "@/lib/price-service";
 import { formatARS } from "@/lib/price-adapters";
+import { calculateTotals } from "@/lib/price-utils";
 import type { Item } from "@/app/generated/prisma/client";
 
 const SUPERMARKETS = [
@@ -41,13 +42,7 @@ export default function PriceComparison({ listId, items }: Props) {
 
   const { totals, minTotal } = useMemo(() => {
     if (!prices) return { totals: null, minTotal: null };
-    const totals = SUPERMARKETS.map(({ key }) => ({
-      key,
-      total: items.reduce((sum, item) => {
-        const r = prices[item.name]?.find((p) => p.supermarket === key);
-        return sum + (r?.price ?? 0);
-      }, 0),
-    }));
+    const totals = calculateTotals(items, prices, SUPERMARKETS.map((s) => s.key));
     const minTotal = Math.min(...totals.map((t) => t.total).filter((t) => t > 0));
     return { totals, minTotal };
   }, [prices, items]);
