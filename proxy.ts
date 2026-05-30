@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt, encrypt } from "@/lib/session";
 import { cookies } from "next/headers";
+import { SESSION_DURATION_MS } from "@/lib/constants/time";
 
 const protectedRoutes: string[] = ["/settings/api-keys"];
 const publicRoutes = ["/", "/login", "/signup"];
@@ -24,7 +25,7 @@ export default async function proxy(req: NextRequest) {
   const res = NextResponse.next();
 
   if (session?.userId && cookie) {
-    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newExpiry = new Date(Date.now() + SESSION_DURATION_MS);
     const refreshed = await encrypt({ userId: session.userId, expiresAt: newExpiry });
     res.cookies.set("session", refreshed, {
       httpOnly: true,

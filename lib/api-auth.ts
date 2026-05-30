@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { prisma } from "./prisma";
 import type { User } from "../app/generated/prisma/client";
+import { LAST_USED_UPDATE_INTERVAL_MS } from "./constants/time";
 
 export class ApiAuthError extends Error {
   constructor() {
@@ -25,7 +26,7 @@ export async function withApiKey(req: Request): Promise<{ user: User; keyId: str
   if (!apiKey) throw new ApiAuthError();
   if (apiKey.expiresAt && apiKey.expiresAt < new Date()) throw new ApiAuthError();
 
-  if (!apiKey.lastUsedAt || Date.now() - apiKey.lastUsedAt.getTime() > 3_600_000) {
+  if (!apiKey.lastUsedAt || Date.now() - apiKey.lastUsedAt.getTime() > LAST_USED_UPDATE_INTERVAL_MS) {
     await prisma.apiKey.update({
       where: { id: apiKey.id },
       data: { lastUsedAt: new Date() },

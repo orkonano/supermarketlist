@@ -7,8 +7,7 @@ import {
   type Supermarket,
 } from "./price-adapters";
 import { assertMember } from "./list-service";
-
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+import { PRICE_CACHE_TTL_MS } from "./constants/time";
 
 export type ItemPrices = Record<string, PriceResult[]>;
 
@@ -34,7 +33,7 @@ export async function serviceGetItemPrices(
 
   const fresh = new Map<string, PriceResult>();
   for (const e of cachedEntries) {
-    if (now - e.fetchedAt.getTime() < CACHE_TTL_MS) {
+    if (now - e.fetchedAt.getTime() < PRICE_CACHE_TTL_MS) {
       fresh.set(cacheKey(e.query, e.supermarket), {
         supermarket: e.supermarket as Supermarket,
         price: e.price,

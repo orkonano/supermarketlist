@@ -8,6 +8,7 @@ import { prisma } from "./prisma";
 import { verifySession } from "./dal";
 import { start } from "workflow/api";
 import { listInviteWorkflow } from "@/workflows/list-invite";
+import { INVITE_EXPIRY_MS } from "./constants/time";
 
 const EmailSchema = z.string().email("Ingresá un correo electrónico válido.");
 
@@ -39,7 +40,7 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   }
 
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MS);
 
   await prisma.listInvite.create({
     data: { listId, email, invitedById: session.userId, token, expiresAt },

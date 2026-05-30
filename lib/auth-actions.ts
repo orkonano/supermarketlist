@@ -8,6 +8,7 @@ import { createSession, deleteSession } from "./session";
 import { SignupFormSchema, LoginFormSchema, FormState } from "./definitions";
 import { emailVerificationWorkflow } from "@/workflows/email-verification";
 import { acceptInvite } from "./invite-actions";
+import { ERRORS } from "./constants/errors";
 
 export async function signup(state: FormState, formData: FormData): Promise<FormState> {
   const validated = SignupFormSchema.safeParse({
@@ -60,12 +61,12 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    return { message: "Correo electrónico o contraseña incorrectos." };
+    return { message: ERRORS.INVALID_CREDENTIALS };
   }
 
   const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
   if (!passwordMatch) {
-    return { message: "Correo electrónico o contraseña incorrectos." };
+    return { message: ERRORS.INVALID_CREDENTIALS };
   }
 
   await createSession(user.id);

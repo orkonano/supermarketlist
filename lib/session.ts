@@ -2,6 +2,7 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { SessionPayload } from "./definitions";
+import { SESSION_DURATION_DAYS, SESSION_DURATION_MS } from "./constants/time";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is not set");
@@ -13,7 +14,7 @@ export async function encrypt(payload: SessionPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(`${SESSION_DURATION_DAYS}d`)
     .sign(encodedKey);
 }
 
@@ -29,7 +30,7 @@ export async function decrypt(session: string | undefined = "") {
 }
 
 export async function createSession(userId: string) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
   const session = await encrypt({ userId, expiresAt });
   const cookieStore = await cookies();
 

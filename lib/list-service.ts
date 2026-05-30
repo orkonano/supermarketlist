@@ -1,9 +1,10 @@
 import { prisma } from "./prisma";
 import { ServiceError } from "./errors";
+import { ERRORS } from "./constants/errors";
 
 export async function assertOwner(listId: string, userId: string) {
   const list = await prisma.list.findUnique({ where: { id: listId } });
-  if (!list || list.ownerId !== userId) throw new ServiceError(403, "No tenés permiso para realizar esta acción.");
+  if (!list || list.ownerId !== userId) throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
   return list;
 }
 
@@ -20,7 +21,7 @@ export async function assertMember(listId: string, userId: string) {
     return;
   }
 
-  throw new ServiceError(403, "No tenés permiso para realizar esta acción.");
+  throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
 }
 
 export async function serviceCreateList(userId: string, name: string) {
