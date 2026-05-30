@@ -17,8 +17,8 @@ import {
 
 const ListNameSchema = z.string().min(1, "El nombre es obligatorio.").max(100).trim();
 const AddItemSchema = z.object({
-  name: z.string().min(1),
-  quantity: z.string().max(50).optional(),
+  name: z.string().min(1, "El nombre del producto es obligatorio."),
+  quantity: z.string().max(50, "La cantidad no puede superar los 50 caracteres.").optional(),
 });
 
 export async function createList(name: string) {
@@ -66,7 +66,7 @@ export async function addListItem(listId: string, formData: FormData) {
   const year = Number.isInteger(rawYear) && rawYear >= 2000 && rawYear <= 2100 ? rawYear : now.getFullYear();
 
   const parsed = AddItemSchema.safeParse({ name: name?.trim(), quantity: quantity?.trim() || undefined });
-  if (!parsed.success) return { error: "El nombre del producto es obligatorio." };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.userId }, select: { name: true } });
 
