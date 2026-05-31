@@ -37,7 +37,7 @@ coverage: {
 },
 ```
 
-- `provider: "v8"` — built-in, no extra package required
+- `provider: "v8"` — requires @vitest/coverage-v8 (installed in Task 1)
 - `reporter: ["text", "json-summary"]` — prints table to terminal; writes `coverage/coverage-summary.json` for future tooling
 - `thresholds.lines: 85` — Vitest exits non-zero when line coverage drops below 85%
 
