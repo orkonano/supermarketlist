@@ -83,9 +83,13 @@ export async function serviceDeleteList(listId: string, userId: string) {
 }
 
 export async function serviceGetListItems(listId: string, userId: string, month: number, year: number) {
-  await ensureMember(listId, userId);
   return prisma.item.findMany({
-    where: { listId, month, year },
+    where: {
+      listId,
+      month,
+      year,
+      list: { members: { some: { userId } } },
+    },
     orderBy: [{ category: "asc" }, { createdAt: "asc" }],
   });
 }

@@ -6,6 +6,7 @@ vi.mock("../prisma", () => ({
     list: { findUnique: vi.fn() },
     listMember: { findUnique: vi.fn() },
     priceCache: { findMany: vi.fn(), upsert: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
 vi.mock("../price-adapters", async (importOriginal) => {
@@ -63,7 +64,7 @@ function adapterResult(supermarket: "coto" | "disco" | "carrefour") {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(verifySession).mockResolvedValue(SESSION);
-  vi.mocked(prisma.priceCache.upsert).mockResolvedValue(undefined as never);
+  vi.mocked(prisma.$transaction).mockResolvedValue([]);
   vi.mocked(vtexAdapter).mockResolvedValue(adapterResult("disco"));
   vi.mocked(cotoAdapter).mockResolvedValue(adapterResult("coto"));
 });
@@ -176,14 +177,15 @@ describe("getItemPrices — cache misses", () => {
     expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche");
   });
 
-  it("upserts each adapter result into the cache", async () => {
+  it("batches all adapter results into a single $transaction", async () => {
     vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER);
     vi.mocked(prisma.priceCache.findMany).mockResolvedValue([]);
     vi.mocked(vtexAdapter).mockImplementation(async (store) => adapterResult(store));
 
     await getItemPrices("list-1", ["leche"]);
 
-    // One upsert per supermarket
+    // All 3 upserts are built and passed to a single $transaction call
+    expect(vi.mocked(prisma.$transaction)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(prisma.priceCache.upsert)).toHaveBeenCalledTimes(3);
     expect(vi.mocked(prisma.priceCache.upsert)).toHaveBeenCalledWith(
       expect.objectContaining({

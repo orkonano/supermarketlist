@@ -103,17 +103,19 @@ describe("inviteToList", () => {
     expect(vi.mocked(start)).not.toHaveBeenCalled();
   });
 
-  it("throws when list is deleted between ownership check and workflow", async () => {
-    vi.mocked(prisma.list.findUnique)
-      .mockResolvedValueOnce(fakeList as never)
-      .mockResolvedValueOnce(null);
+  it("succeeds even if the list had been re-fetched (single-fetch path)", async () => {
+    // List name is now captured in the first (and only) list lookup — there is no
+    // second list fetch that could fail if the list is deleted mid-request.
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.user.findUnique)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: "user-1", name: "Alice" } as never);
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
 
-    await expect(inviteToList("list-1", "bob@example.com")).rejects.toThrow();
+    const result = await inviteToList("list-1", "bob@example.com");
+
+    expect(result).toEqual({ success: true });
   });
 
   it("throws when inviter is deleted between ownership check and workflow", async () => {

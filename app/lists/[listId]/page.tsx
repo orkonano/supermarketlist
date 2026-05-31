@@ -1,12 +1,12 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { verifySession, getCurrentUser } from "@/lib/dal";
 import { serviceGetListForMember } from "@/lib/list-service";
 import { logout } from "@/lib/auth-actions";
-import { getListItems } from "@/lib/list-actions";
 import { normalizeMonthYear } from "@/lib/date-utils";
-import ShoppingList from "@/app/components/ShoppingList";
 import VerificationBanner from "@/app/components/VerificationBanner";
 import RenameListForm from "@/app/components/RenameListForm";
+import ItemsSection from "./ItemsSection";
 import Link from "next/link";
 
 export default async function ListPage({
@@ -22,10 +22,9 @@ export default async function ListPage({
 
   const session = await verifySession();
 
-  const [list, user, items] = await Promise.all([
+  const [list, user] = await Promise.all([
     serviceGetListForMember(listId, session.userId),
     getCurrentUser(session.userId),
-    getListItems(listId, month, year),
   ]);
 
   if (!list || list.members.length === 0) notFound();
@@ -69,7 +68,17 @@ export default async function ListPage({
         {sp.verified === "1" && <VerificationBanner verified />}
         {sp.error && <VerificationBanner error={sp.error} />}
 
-        <ShoppingList items={items} month={month} year={year} listId={listId} />
+        <Suspense
+          fallback={
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-sm h-24 animate-pulse" />
+              ))}
+            </div>
+          }
+        >
+          <ItemsSection listId={listId} month={month} year={year} />
+        </Suspense>
       </div>
     </main>
   );

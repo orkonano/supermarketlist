@@ -151,10 +151,12 @@ describe("getListItems", () => {
     expect(result).toEqual([fakeItem]);
   });
 
-  it("throws when the user is not a member", async () => {
-    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+  it("returns empty array when the user is not a member", async () => {
+    vi.mocked(prisma.item.findMany).mockResolvedValue([]);
 
-    await expect(getListItems("list-1", 5, 2026)).rejects.toThrow("No tenés permiso para realizar esta acción.");
+    const result = await getListItems("list-1", 5, 2026);
+
+    expect(result).toEqual([]);
   });
 });
 
