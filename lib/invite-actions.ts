@@ -63,13 +63,24 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   return { success: true };
 }
 
-export async function acceptInvite(token: string, userId: string): Promise<{ listId: string } | { error: string }> {
-  const invite = await prisma.listInvite.findUnique({ where: { token } });
+type PrefetchedInviteData = {
+  invite: { id: string; listId: string; email: string; expiresAt: Date; accepted: boolean };
+  userEmail: string;
+};
+
+export async function acceptInvite(
+  token: string,
+  userId: string,
+  prefetched?: PrefetchedInviteData
+): Promise<{ listId: string } | { error: string }> {
+  const invite = prefetched?.invite ?? await prisma.listInvite.findUnique({ where: { token } });
   if (!invite) return { error: "El enlace de invitación es inválido." };
   if (invite.expiresAt < new Date()) return { error: "Esta invitación expiró." };
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-  if (!user || user.email !== invite.email) return { error: "Esta invitación no corresponde a tu correo electrónico." };
+  const userEmail = prefetched
+    ? prefetched.userEmail
+    : (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email;
+  if (!userEmail || userEmail !== invite.email) return { error: "Esta invitación no corresponde a tu correo electrónico." };
 
   if (invite.accepted) return { listId: invite.listId };
 

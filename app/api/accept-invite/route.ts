@@ -27,11 +27,11 @@ export async function GET(req: Request) {
     select: { email: true },
   });
 
-  if (sessionUser?.email !== invite.email) {
+  if (!sessionUser || sessionUser.email !== invite.email) {
     return Response.redirect(new URL("/lists?error=wrong-account", req.url));
   }
 
-  const result = await acceptInvite(token, session.userId);
+  const result = await acceptInvite(token, session.userId, { invite, userEmail: sessionUser.email });
   if ("error" in result) {
     return Response.redirect(new URL(`/lists?error=${encodeURIComponent(result.error)}`, req.url));
   }

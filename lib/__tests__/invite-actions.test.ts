@@ -221,4 +221,29 @@ describe("acceptInvite", () => {
 
     await expect(acceptInvite("fixed-token-hex", "user-2")).rejects.toThrow("Connection timeout");
   });
+
+  it("skips DB lookups and succeeds when prefetched data is provided", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([]);
+
+    const result = await acceptInvite("fixed-token-hex", "user-2", {
+      invite: fakeInvite,
+      userEmail: "bob@example.com",
+    });
+
+    expect(result).toEqual({ listId: "list-1" });
+    expect(vi.mocked(prisma.listInvite.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.user.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$transaction)).toHaveBeenCalled();
+  });
+
+  it("returns error via prefetched path when email does not match", async () => {
+    const result = await acceptInvite("fixed-token-hex", "user-2", {
+      invite: fakeInvite,
+      userEmail: "wrong@example.com",
+    });
+
+    expect(result).toEqual({ error: "Esta invitación no corresponde a tu correo electrónico." });
+    expect(vi.mocked(prisma.listInvite.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$transaction)).not.toHaveBeenCalled();
+  });
 });
