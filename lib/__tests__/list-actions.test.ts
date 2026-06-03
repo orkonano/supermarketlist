@@ -13,6 +13,9 @@ vi.mock("../prisma", () => ({
 import { createList, updateList, deleteList, getUserLists, getListItems, addListItem, toggleListItem, deleteListItem } from "../list-actions";
 import { verifySession, getCurrentUser } from "../dal";
 import { prisma } from "../prisma";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+
+const p2025 = new PrismaClientKnownRequestError("Record not found", { code: "P2025", clientVersion: "6.0.0" });
 
 const SESSION = { userId: "user-1" };
 
@@ -74,18 +77,19 @@ describe("createList", () => {
 // ---------------------------------------------------------------------------
 
 describe("updateList", () => {
-  it("updates the name when called by the owner", async () => {
-    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList);
+  it("updates the name and passes ownerId in the WHERE clause", async () => {
+    vi.mocked(prisma.list.update).mockResolvedValue(fakeList);
 
     await updateList("list-1", "Renamed");
 
-    expect(vi.mocked(prisma.list.update)).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "list-1" }, data: { name: "Renamed" } })
-    );
+    expect(vi.mocked(prisma.list.update)).toHaveBeenCalledWith({
+      where: { id: "list-1", ownerId: "user-1" },
+      data: { name: "Renamed" },
+    });
   });
 
-  it("throws when called by a non-owner", async () => {
-    vi.mocked(prisma.list.findUnique).mockResolvedValue({ ...fakeList, ownerId: "other-user" });
+  it("throws when the list does not exist or the user is not the owner", async () => {
+    vi.mocked(prisma.list.update).mockRejectedValue(p2025);
 
     await expect(updateList("list-1", "Renamed")).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
@@ -96,22 +100,16 @@ describe("updateList", () => {
 // ---------------------------------------------------------------------------
 
 describe("deleteList", () => {
-  it("deletes the list when called by the owner", async () => {
-    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList);
+  it("deletes the list and passes ownerId in the WHERE clause", async () => {
+    vi.mocked(prisma.list.delete).mockResolvedValue(fakeList);
 
     await deleteList("list-1");
 
-    expect(vi.mocked(prisma.list.delete)).toHaveBeenCalledWith({ where: { id: "list-1" } });
+    expect(vi.mocked(prisma.list.delete)).toHaveBeenCalledWith({ where: { id: "list-1", ownerId: "user-1" } });
   });
 
-  it("throws when called by a non-owner", async () => {
-    vi.mocked(prisma.list.findUnique).mockResolvedValue({ ...fakeList, ownerId: "other-user" });
-
-    await expect(deleteList("list-1")).rejects.toThrow("No tenés permiso para realizar esta acción.");
-  });
-
-  it("throws when the list does not exist", async () => {
-    vi.mocked(prisma.list.findUnique).mockResolvedValue(null);
+  it("throws when the list does not exist or the user is not the owner", async () => {
+    vi.mocked(prisma.list.delete).mockRejectedValue(p2025);
 
     await expect(deleteList("list-1")).rejects.toThrow("No tenés permiso para realizar esta acción.");
   });
