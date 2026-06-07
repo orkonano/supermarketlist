@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("../dal", () => ({ verifySession: vi.fn() }));
+vi.mock("../dal", () => ({ verifySession: vi.fn(), getCurrentUser: vi.fn() }));
 vi.mock("workflow/api", () => ({ start: vi.fn() }));
 vi.mock("@/workflows/list-invite", () => ({ listInviteWorkflow: {} }));
 vi.mock("crypto", async (importOriginal) => {
@@ -19,7 +19,7 @@ vi.mock("../prisma", () => ({
 }));
 
 import { inviteToList, acceptInvite } from "../invite-actions";
-import { verifySession } from "../dal";
+import { verifySession, getCurrentUser } from "../dal";
 import { prisma } from "../prisma";
 import { start } from "workflow/api";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
@@ -108,9 +108,8 @@ describe("inviteToList", () => {
     // second list fetch that could fail if the list is deleted mid-request.
     vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "user-1", name: "Alice" } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "Alice", emailVerified: false });
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
 
     const result = await inviteToList("list-1", "bob@example.com");
@@ -121,10 +120,8 @@ describe("inviteToList", () => {
   it("throws when inviter is deleted between ownership check and workflow", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
-    vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee
+    vi.mocked(getCurrentUser).mockResolvedValue(null); // inviter deleted
 
     await expect(inviteToList("list-1", "bob@example.com")).rejects.toThrow();
   });
@@ -132,9 +129,8 @@ describe("inviteToList", () => {
   it("creates invite and starts workflow on success", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null) // invitee lookup — not registered
-      .mockResolvedValueOnce({ id: "user-1", name: "Alice", email: "alice@example.com" } as never); // inviter name
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee — not registered
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "Alice", emailVerified: false });
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
 
     const result = await inviteToList("list-1", "bob@example.com");

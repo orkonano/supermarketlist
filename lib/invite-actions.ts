@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { prisma } from "./prisma";
-import { verifySession } from "./dal";
+import { verifySession, getCurrentUser } from "./dal";
 import { start } from "workflow/api";
 import { listInviteWorkflow } from "@/workflows/list-invite";
 import { INVITE_EXPIRY_MS } from "./constants/time";
@@ -19,14 +19,16 @@ export type InviteResult =
 type ValidateResult = { error: string } | { invitee: { id: string } | null; listName: string };
 
 async function validateInviteCanBeSent(listId: string, email: string, inviterId: string): Promise<ValidateResult> {
-  const list = await prisma.list.findUnique({ where: { id: listId }, select: { ownerId: true, name: true } });
+  const [list, existing, invitee] = await Promise.all([
+    prisma.list.findUnique({ where: { id: listId }, select: { ownerId: true, name: true } }),
+    prisma.listInvite.findFirst({ where: { listId, email, accepted: false } }),
+    prisma.user.findUnique({ where: { email }, select: { id: true } }),
+  ]);
+
   if (!list || list.ownerId !== inviterId) return { error: "Solo el propietario de la lista puede invitar personas." };
-
-  const existing = await prisma.listInvite.findFirst({ where: { listId, email, accepted: false } });
   if (existing) return { error: "Ya se envió una invitación a este correo electrónico." };
-
-  const invitee = await prisma.user.findUnique({ where: { email } });
   if (invitee?.id === inviterId) return { error: "No podés invitarte a vos mismo." };
+
   if (invitee) {
     const alreadyMember = await prisma.listMember.findUnique({
       where: { listId_userId: { listId, userId: invitee.id } },
@@ -43,8 +45,14 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   const parsed = EmailSchema.safeParse(email);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const validation = await validateInviteCanBeSent(listId, email, session.userId);
+  const [validation, inviter] = await Promise.all([
+    validateInviteCanBeSent(listId, email, session.userId),
+    getCurrentUser(session.userId),
+  ]);
+
   if ("error" in validation) return validation;
+  if (!inviter) throw new Error("El usuario fue eliminado durante la invitación.");
+
   const { invitee, listName } = validation;
 
   const token = randomBytes(32).toString("hex");
@@ -53,9 +61,6 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
   await prisma.listInvite.create({
     data: { listId, email, invitedById: session.userId, token, expiresAt },
   });
-
-  const inviter = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
-  if (!inviter) throw new Error("El usuario fue eliminado durante la invitación.");
 
   await start(listInviteWorkflow, [email, inviter.name, listName, token, !!invitee]);
 
