@@ -29,7 +29,7 @@ test("can toggle an item as checked", async ({ page }) => {
 
   await page.click('button[aria-label="Marcar producto"]');
   await expect(page.locator('button[aria-label="Desmarcar producto"]')).toBeVisible();
-  await expect(page.locator("span.line-through", { hasText: "Pan" })).toBeVisible();
+  await expect(page.locator('span[style*="line-through"]', { hasText: "Pan" })).toBeVisible();
 });
 
 test("can delete an item", async ({ page }) => {

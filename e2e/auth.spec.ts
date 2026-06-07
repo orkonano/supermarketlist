@@ -30,7 +30,7 @@ test.describe("unauthenticated", () => {
     await page.fill("#email", email);
     await page.fill("#password", "wrong-password");
     await page.click('button[type="submit"]');
-    const errorMsg = page.locator("p.text-red-600");
+    const errorMsg = page.locator('[data-testid="form-error"]');
     await expect(errorMsg).toBeVisible();
     await expect(errorMsg).toContainText("Correo electrónico o contraseña incorrectos.");
   });

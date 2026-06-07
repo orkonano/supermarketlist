@@ -1,7 +1,14 @@
 export default function VerificationBanner({ verified, error }: { verified?: boolean; error?: string }) {
   if (verified) {
     return (
-      <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+      <div
+        className="mb-6 px-4 py-3 rounded-lg text-sm border"
+        style={{
+          background: "var(--brand-50)",
+          borderColor: "var(--brand-400)",
+          color: "var(--brand-600)",
+        }}
+      >
         Tu correo fue verificado. ¡Bienvenido!
       </div>
     );
@@ -9,7 +16,14 @@ export default function VerificationBanner({ verified, error }: { verified?: boo
 
   if (error) {
     return (
-      <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+      <div
+        className="mb-6 px-4 py-3 rounded-lg text-sm border"
+        style={{
+          background: "var(--destructive-50)",
+          borderColor: "var(--destructive-500)",
+          color: "var(--destructive-500)",
+        }}
+      >
         El enlace de verificación es inválido o ya fue utilizado.
       </div>
     );

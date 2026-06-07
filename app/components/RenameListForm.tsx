@@ -4,6 +4,17 @@ import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
 import { updateList } from "@/lib/list-actions";
 
+const inputStyle = {
+  flex: 1,
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-md)",
+  padding: "8px 12px",
+  fontSize: "14px",
+  color: "var(--text-primary)",
+  background: "var(--surface-raised)",
+  outline: "none",
+};
+
 export default function RenameListForm({ listId, currentName }: { listId: string; currentName: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -24,28 +35,39 @@ export default function RenameListForm({ listId, currentName }: { listId: string
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Renombrar lista</h2>
+    <div
+      className="rounded-xl p-5 mb-5 border"
+      style={{ background: "var(--surface-raised)", borderColor: "var(--border)" }}
+    >
+      <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
+        Renombrar lista
+      </h2>
       <form onSubmit={handleSubmit} className="flex gap-2">
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        <input
-          name="name"
-          defaultValue={currentName}
-          required
-          autoFocus
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+        {error && (
+          <p className="text-xs" style={{ color: "var(--destructive-500)" }}>{error}</p>
+        )}
+        <input name="name" defaultValue={currentName} required autoFocus style={inputStyle} />
         <button
           type="button"
           onClick={() => router.replace(`/lists/${listId}`)}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          className="px-3 py-2 rounded-lg text-sm transition-colors"
+          style={{
+            border: "1px solid var(--border)",
+            color: "var(--text-secondary)",
+            background: "transparent",
+          }}
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+          className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+          style={{
+            background: isPending ? "var(--brand-400)" : "var(--brand-500)",
+            color: "white",
+            opacity: isPending ? 0.7 : 1,
+          }}
         >
           {isPending ? "Guardando…" : "Guardar"}
         </button>

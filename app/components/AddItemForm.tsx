@@ -10,6 +10,17 @@ type Props = {
   listId: string;
 };
 
+const inputStyle = {
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius-md)",
+  padding: "8px 12px",
+  fontSize: "14px",
+  color: "var(--text-primary)",
+  background: "var(--surface-raised)",
+  width: "100%",
+  outline: "none",
+};
+
 export default function AddItemForm({ month, year, categories, listId }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -37,37 +48,45 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-2xl shadow-sm transition-colors"
+        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors"
+        style={{ background: "var(--brand-500)", color: "white" }}
       >
-        <span className="text-xl">+</span>
+        <span className="text-xl leading-none">+</span>
         Agregar producto
       </button>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-5">
-      <h2 className="text-base font-semibold text-gray-800 mb-4">Nuevo producto</h2>
+    <div
+      className="rounded-xl p-5 border"
+      style={{ background: "var(--surface-raised)", borderColor: "var(--border)" }}
+    >
+      <h2 className="text-base font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+        Nuevo producto
+      </h2>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm px-3 py-2 rounded-lg" style={{ background: "var(--destructive-50)", color: "var(--destructive-500)" }}>
+            {error}
+          </p>
         )}
         <input
           name="name"
           required
           placeholder="Nombre del producto *"
           autoFocus
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+          style={inputStyle}
         />
         <div className="flex gap-2">
           <input
             name="quantity"
             placeholder="Cantidad (ej. 2kg)"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+            style={{ ...inputStyle, width: "auto", flex: 1 }}
           />
           <select
             name="category"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+            style={{ ...inputStyle, width: "auto", flex: 1 }}
           >
             <option value="">Categoría</option>
             {categories.map((c) => (
@@ -79,14 +98,24 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="flex-1 py-2 px-4 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2 px-4 rounded-lg text-sm transition-colors"
+            style={{
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
+              background: "transparent",
+            }}
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 py-2 px-4 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+            className="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-colors"
+            style={{
+              background: isPending ? "var(--brand-400)" : "var(--brand-500)",
+              color: "white",
+              opacity: isPending ? 0.7 : 1,
+            }}
           >
             {isPending ? "Agregando…" : "Agregar"}
           </button>
