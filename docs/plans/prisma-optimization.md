@@ -107,11 +107,13 @@ No `select` — fetches `id` which is never used. Should select only the 8 field
 
 ---
 
-### F8 — Dead code: `serviceGetListForMember` (LOW)
+### F8 — ~~Dead code: `serviceGetListForMember`~~ (FINDING INCORRECT)
 
 **File:** `lib/list-service.ts:33-38`
 
-Exported function with zero call sites in the codebase. Safe to delete.
+~~Exported function with zero call sites in the codebase. Safe to delete.~~
+
+**Correction:** `serviceGetListForMember` has an active call site in `app/lists/[listId]/page.tsx`. The original analysis was wrong. This function is live and must not be deleted.
 
 ---
 
@@ -232,9 +234,9 @@ const entries = await prisma.priceCache.findMany({
 
 ---
 
-### Step 6 — Delete dead code (F8)
+### Step 6 — ~~Delete dead code (F8)~~ (CANCELLED)
 
-**`lib/list-service.ts:33-38`** — delete `serviceGetListForMember`. Check no other file imports it first.
+`serviceGetListForMember` is imported and called in `app/lists/[listId]/page.tsx`. The function is not dead. Step 6 is a no-op.
 
 ---
 
@@ -247,6 +249,6 @@ const entries = await prisma.priceCache.findMany({
 | Step 3 (list service) | Medium | `assertOwner` is called from multiple places; verify all callers |
 | Step 4 (parallelism) | Low | Logic unchanged; only execution order shifts |
 | Step 5 (select) | Low | Purely additive constraint on return type |
-| Step 6 (dead code) | Low | Verify zero imports before deleting |
+| Step 6 (dead code) | — | CANCELLED — function has an active call site in `app/lists/[listId]/page.tsx` |
 
 Run `npm test && npx tsc --noEmit` after each step.
