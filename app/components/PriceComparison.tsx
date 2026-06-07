@@ -22,7 +22,7 @@ function ProductInfo({ brand, productName, url }: { brand?: string | null; produ
   if (!brand && !productName) return null;
   const content = (
     <>
-      {brand && <span className="font-medium text-gray-500">{brand}</span>}
+      {brand && <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{brand}</span>}
       {brand && productName && " · "}
       {productName && (
         <span className="truncate block" title={productName}>
@@ -32,7 +32,7 @@ function ProductInfo({ brand, productName, url }: { brand?: string | null; produ
     </>
   );
   return (
-    <span className="text-xs text-gray-400 leading-tight max-w-[120px] text-right">
+    <span className="text-xs leading-tight max-w-[120px] text-right" style={{ color: "var(--text-muted)" }}>
       {url ? (
         <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
           {content}
@@ -61,7 +61,6 @@ export default function PriceComparison({ listId, items }: Props) {
     }
   }, [listId, itemNames]);
 
-  // Auto-fetch on mount and whenever the item count changes (new item added/removed)
   useEffect(() => {
     fetchPrices();
   }, [fetchPrices]);
@@ -77,7 +76,8 @@ export default function PriceComparison({ listId, items }: Props) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full text-sm text-blue-500 hover:underline py-2"
+        className="w-full text-sm py-2 transition-colors hover:underline"
+        style={{ color: "var(--brand-500)" }}
       >
         Ver comparación de precios
       </button>
@@ -85,20 +85,30 @@ export default function PriceComparison({ listId, items }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="font-semibold text-gray-900">Comparación de precios</span>
+    <div
+      className="rounded-2xl overflow-hidden border"
+      style={{ background: "var(--surface-raised)", borderColor: "var(--border)" }}
+    >
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+          Comparación de precios
+        </span>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchPrices}
             disabled={loading}
-            className="text-xs text-blue-500 hover:underline disabled:opacity-40"
+            className="text-xs transition-colors disabled:opacity-40"
+            style={{ color: "var(--brand-500)" }}
           >
             {loading ? "Actualizando..." : "Actualizar"}
           </button>
           <button
             onClick={() => setOpen(false)}
-            className="text-xs text-gray-400 hover:text-gray-600"
+            className="text-xs transition-colors"
+            style={{ color: "var(--text-muted)" }}
           >
             Cerrar
           </button>
@@ -106,107 +116,131 @@ export default function PriceComparison({ listId, items }: Props) {
       </div>
 
       {!prices ? (
-        <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+        <div className="flex items-center justify-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>
           Buscando precios...
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-medium text-gray-500 w-2/5">
-                  Producto
-                </th>
-                {SUPERMARKETS.map(({ key, label }) => (
-                  <th key={key} className="text-right px-4 py-2 font-medium text-gray-500">
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {items.map((item) => {
-                const row = prices[item.name] ?? [];
-                const validPrices = row
-                  .map((r) => r.price)
-                  .filter((p): p is number => p != null);
-                const minPrice = validPrices.length ? Math.min(...validPrices) : null;
-
+        <div>
+          {/* Scoreboard totals */}
+          {totals && (
+            <div className="grid grid-cols-3 gap-3 p-4 border-b" style={{ borderColor: "var(--border)" }}>
+              {SUPERMARKETS.map(({ key, label }) => {
+                const t = totals.find((t) => t.key === key)!;
+                const cheapest = t.total > 0 && t.total === minTotal;
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-2 text-gray-800 font-medium">
-                      {item.name}
-                      {item.quantity && (
-                        <span className="ml-1 text-xs text-gray-400">({item.quantity})</span>
-                      )}
-                    </td>
-                    {SUPERMARKETS.map(({ key }) => {
-                      const r = row.find((p) => p.supermarket === key);
-                      const isCheapest = r?.price != null && r.price === minPrice;
-                      return (
-                        <td key={key} className="px-4 py-2 text-right">
-                          {r?.price != null ? (
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span
-                                className={`tabular-nums font-semibold ${
-                                  isCheapest ? "text-green-600" : "text-gray-700"
-                                }`}
-                              >
-                                {r.productUrl ? (
-                                  <a
-                                    href={r.productUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline"
-                                  >
-                                    {r.priceText}
-                                  </a>
-                                ) : (
-                                  r.priceText
-                                )}
-                              </span>
-                              <ProductInfo brand={r.brand} productName={r.productName} url={r.productUrl} />
-                            </div>
-                          ) : (
-                            <span className="text-gray-300 tabular-nums">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                  <div
+                    key={key}
+                    className="rounded-xl p-3 text-center border transition-all"
+                    style={
+                      cheapest
+                        ? {
+                            background: "var(--accent-50)",
+                            borderColor: "var(--accent-500)",
+                            boxShadow: "0 0 0 1px var(--accent-500)",
+                          }
+                        : {
+                            background: "var(--surface-muted)",
+                            borderColor: "var(--border)",
+                          }
+                    }
+                  >
+                    <div
+                      className="text-xs font-semibold uppercase tracking-widest mb-1"
+                      style={{ color: cheapest ? "var(--accent-500)" : "var(--text-muted)" }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      className="text-2xl font-bold tabular-nums"
+                      style={{ color: cheapest ? "var(--accent-500)" : "var(--text-primary)" }}
+                    >
+                      {t.total > 0 ? formatARS(t.total) : "—"}
+                    </div>
+                    {cheapest && (
+                      <div
+                        className="text-xs font-semibold mt-1"
+                        style={{ color: "var(--accent-500)" }}
+                      >
+                        ★ Más barato
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-            </tbody>
-            {totals && (
-              <tfoot>
-                <tr className="border-t-2 border-gray-200 bg-gray-50">
-                  <td className="px-4 py-3 font-semibold text-gray-700">
-                    Total estimado
-                  </td>
-                  {totals.map(({ key, total }) => {
-                    const isCheapest = total > 0 && total === minTotal;
-                    return (
-                      <td
-                        key={key}
-                        className={`px-4 py-3 text-right tabular-nums font-semibold ${
-                          isCheapest ? "text-green-600" : "text-gray-700"
-                        }`}
-                      >
-                        {total > 0 ? (
-                          formatARS(total)
-                        ) : (
-                          <span className="text-gray-300">—</span>
+            </div>
+          )}
+
+          {/* Detail table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b" style={{ background: "var(--surface-muted)", borderColor: "var(--border)" }}>
+                  <th className="text-left px-4 py-2 font-medium w-2/5" style={{ color: "var(--text-muted)" }}>
+                    Producto
+                  </th>
+                  {SUPERMARKETS.map(({ key, label }) => (
+                    <th key={key} className="text-right px-4 py-2 font-medium" style={{ color: "var(--text-muted)" }}>
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const row = prices[item.name] ?? [];
+                  const validPrices = row.map((r) => r.price).filter((p): p is number => p != null);
+                  const minPrice = validPrices.length ? Math.min(...validPrices) : null;
+
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-b transition-colors"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <td className="px-4 py-2 font-medium" style={{ color: "var(--text-primary)" }}>
+                        {item.name}
+                        {item.quantity && (
+                          <span className="ml-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                            ({item.quantity})
+                          </span>
                         )}
                       </td>
-                    );
-                  })}
-                </tr>
-              </tfoot>
-            )}
-          </table>
-          <p className="px-4 py-2 text-xs text-gray-400 border-t border-gray-50">
-            Precios en ARS · Se actualizan cada 4 horas
-          </p>
+                      {SUPERMARKETS.map(({ key }) => {
+                        const r = row.find((p) => p.supermarket === key);
+                        const isCheapest = r?.price != null && r.price === minPrice;
+                        return (
+                          <td key={key} className="px-4 py-2 text-right">
+                            {r?.price != null ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span
+                                  className="tabular-nums font-semibold"
+                                  style={{ color: isCheapest ? "var(--accent-500)" : "var(--text-primary)" }}
+                                >
+                                  {r.productUrl ? (
+                                    <a href={r.productUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                      {r.priceText}
+                                    </a>
+                                  ) : (
+                                    r.priceText
+                                  )}
+                                </span>
+                                <ProductInfo brand={r.brand} productName={r.productName} url={r.productUrl} />
+                              </div>
+                            ) : (
+                              <span className="tabular-nums" style={{ color: "var(--border-strong)" }}>—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="px-4 py-2 text-xs border-t" style={{ color: "var(--text-muted)", borderColor: "var(--border)" }}>
+              Precios en ARS · Se actualizan cada 4 horas
+            </p>
+          </div>
         </div>
       )}
     </div>

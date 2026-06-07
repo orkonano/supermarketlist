@@ -20,11 +20,26 @@ export default async function SignupPage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <main
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: "var(--surface)" }}
+    >
+      <div
+        className="w-full max-w-sm rounded-xl p-8 border"
+        style={{
+          background: "var(--surface-raised)",
+          borderColor: "var(--border)",
+          boxShadow: "0 1px 3px oklch(0% 0 0 / 0.08), 0 4px 12px oklch(0% 0 0 / 0.06)",
+        }}
+      >
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Creá tu cuenta</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <div
+            className="text-2xl font-bold mb-1"
+            style={{ fontFamily: "var(--font-display)", color: "var(--text-primary)" }}
+          >
+            Creá tu cuenta
+          </div>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             {inviteToken ? "Creá una cuenta para aceptar la invitación" : "Empezá a organizar tu lista del súper"}
           </p>
         </div>

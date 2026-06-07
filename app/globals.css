@@ -1,34 +1,100 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand — rich forest green */
+  --brand-600: oklch(42% 0.14 155);
+  --brand-500: oklch(52% 0.16 155);
+  --brand-400: oklch(64% 0.16 155);
+  --brand-50:  oklch(97% 0.03 155);
+
+  /* Accent — warm amber for price winners */
+  --accent-500: oklch(72% 0.17 78);
+  --accent-fg:  oklch(16% 0.06 78);
+  --accent-50:  oklch(98% 0.04 78);
+
+  /* Destructive */
+  --destructive-500: oklch(55% 0.22 27);
+  --destructive-50:  oklch(97% 0.04 27);
+
+  /* Surfaces — warm off-white, not pure white */
+  --surface:        oklch(97.5% 0.008 85);
+  --surface-raised: oklch(100% 0 0);
+  --surface-muted:  oklch(94% 0.01 85);
+
+  /* Text */
+  --text-primary:   oklch(16% 0.02 85);
+  --text-secondary: oklch(46% 0.02 85);
+  --text-muted:     oklch(64% 0.02 85);
+
+  /* Border */
+  --border:        oklch(88% 0.015 85);
+  --border-strong: oklch(76% 0.02 85);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* shadcn required tokens */
+  --background: oklch(97.5% 0.008 85);
+  --foreground: oklch(16% 0.02 85);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(16% 0.02 85);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(16% 0.02 85);
+  --primary: oklch(42% 0.14 155);
+  --primary-foreground: oklch(100% 0 0);
+  --secondary: oklch(94% 0.01 85);
+  --secondary-foreground: oklch(16% 0.02 85);
+  --muted: oklch(94% 0.01 85);
+  --muted-foreground: oklch(64% 0.02 85);
+  --accent: oklch(94% 0.01 85);
+  --accent-foreground: oklch(16% 0.02 85);
+  --destructive: oklch(55% 0.22 27);
+  --input: oklch(88% 0.015 85);
+  --ring: oklch(52% 0.16 155);
+  --radius: 0.625rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--surface);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-playfair);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
-/* Inputs always use dark text on white, regardless of system color scheme */
+/* Inputs always use dark text on white */
 input,
 select,
 textarea {
-  color: #111827;
-  background-color: #ffffff;
+  color: var(--text-primary);
+  background-color: var(--surface-raised);
 }

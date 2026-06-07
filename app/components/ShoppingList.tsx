@@ -29,22 +29,37 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
       <AddItemForm month={month} year={year} categories={CATEGORIES} listId={listId} />
 
       {total === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <div className="text-4xl mb-3">🛒</div>
-          <p className="text-lg">Todavía no hay productos este mes.</p>
-          <p className="text-sm">¡Agregá el primero arriba!</p>
+        <div
+          className="text-center py-16 rounded-xl border-2 border-dashed"
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+        >
+          <div className="text-5xl mb-4">🛒</div>
+          <p className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
+            Todavía no hay productos este mes.
+          </p>
+          <p className="text-sm mt-1">¡Agregá el primero arriba!</p>
         </div>
       ) : (
         <>
           <div className="space-y-4">
             {Object.entries(grouped).map(([category, catItems]) => (
-              <div key={category} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div
+                key={category}
+                className="rounded-xl border overflow-hidden"
+                style={{ background: "var(--surface-raised)", borderColor: "var(--border)" }}
+              >
+                <div
+                  className="px-4 py-2 border-b"
+                  style={{ background: "var(--surface-muted)", borderColor: "var(--border)" }}
+                >
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     {category}
                   </span>
                 </div>
-                <ul className="divide-y divide-gray-50">
+                <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
                   {catItems.map((item) => (
                     <ItemRow key={item.id} item={item} listId={listId} />
                   ))}
