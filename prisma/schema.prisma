@@ -30,6 +30,8 @@ model ApiKey {
   createdAt   DateTime  @default(now())
   lastUsedAt  DateTime?
   expiresAt   DateTime?
+
+  @@index([userId])
 }
 
 model List {
@@ -42,6 +44,8 @@ model List {
   invites   ListInvite[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+
+  @@index([ownerId])
 }
 
 model ListMember {
@@ -65,6 +69,8 @@ model ListInvite {
   accepted    Boolean  @default(false)
   expiresAt   DateTime
   createdAt   DateTime @default(now())
+
+  @@index([email])
 }
 
 model Item {
@@ -80,6 +86,8 @@ model Item {
   updatedAt DateTime @updatedAt
   listId    String
   list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId, month, year])
 }
 
 model PriceCache {
@@ -95,5 +103,4 @@ model PriceCache {
   fetchedAt   DateTime @default(now())
 
   @@unique([query, supermarket])
-  @@index([query])
 }

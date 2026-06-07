@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import type { Item } from "@/app/generated/prisma/client";
 import { toggleListItem, deleteListItem } from "@/lib/list-actions";
 
@@ -17,10 +17,14 @@ const DeleteIcon = (
 );
 
 export default function ItemRow({ item, listId }: { item: Item; listId: string }) {
+  const [optimisticChecked, setOptimisticChecked] = useOptimistic(item.checked);
   const [pending, startTransition] = useTransition();
 
   function handleToggle() {
-    startTransition(() => toggleListItem(listId, item.id, !item.checked));
+    startTransition(async () => {
+      setOptimisticChecked(!item.checked);
+      await toggleListItem(listId, item.id, !item.checked);
+    });
   }
 
   function handleDelete() {
@@ -32,16 +36,16 @@ export default function ItemRow({ item, listId }: { item: Item; listId: string }
       <button
         onClick={handleToggle}
         className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${
-          item.checked
+          optimisticChecked
             ? "bg-green-500 border-green-500"
             : "border-gray-300 hover:border-green-400"
         }`}
-        aria-label={item.checked ? "Desmarcar producto" : "Marcar producto"}
+        aria-label={optimisticChecked ? "Desmarcar producto" : "Marcar producto"}
       >
-        {item.checked && CheckIcon}
+        {optimisticChecked && CheckIcon}
       </button>
       <div className="flex-1 min-w-0">
-        <span className={`text-sm font-medium ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
+        <span className={`text-sm font-medium ${optimisticChecked ? "line-through text-gray-400" : "text-gray-800"}`}>
           {item.name}
         </span>
         {item.quantity && (

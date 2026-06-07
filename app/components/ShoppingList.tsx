@@ -1,17 +1,9 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 import type { Item } from "@/app/generated/prisma/client";
 import { groupItemsByCategory } from "@/lib/shopping-utils";
 import AddItemForm from "./AddItemForm";
 import ItemRow from "./ItemRow";
-import PriceComparison from "./PriceComparison";
-
-const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
+import MonthNav from "./MonthNav";
+import PriceComparisonLazy from "./PriceComparisonLazy";
 
 const CATEGORIES = [
   "Frutas y Verduras", "Lácteos", "Carnes", "Panadería", "Congelados",
@@ -25,60 +17,14 @@ type Props = {
   listId: string;
 };
 
-
 export default function ShoppingList({ items, month, year, listId }: Props) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
-
   const grouped = groupItemsByCategory(items, CATEGORIES);
-
-  function navigate(m: number, y: number) {
-    startTransition(() => {
-      router.push(`/lists/${listId}?month=${m}&year=${y}`);
-    });
-  }
-
-  function prevMonth() {
-    if (month === 1) navigate(12, year - 1);
-    else navigate(month - 1, year);
-  }
-
-  function nextMonth() {
-    if (month === 12) navigate(1, year + 1);
-    else navigate(month + 1, year);
-  }
-
   const checked = items.filter((i) => i.checked).length;
   const total = items.length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm p-4">
-        <button
-          onClick={prevMonth}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="Mes anterior"
-        >
-          &#8592;
-        </button>
-        <div className="text-center">
-          <div className="text-xl font-semibold text-gray-900">
-            {MONTHS[month - 1]} {year}
-          </div>
-          {total > 0 && (
-            <div className="text-sm text-gray-400">
-              {checked}/{total} productos marcados
-            </div>
-          )}
-        </div>
-        <button
-          onClick={nextMonth}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          aria-label="Mes siguiente"
-        >
-          &#8594;
-        </button>
-      </div>
+      <MonthNav month={month} year={year} listId={listId} checked={checked} total={total} />
 
       <AddItemForm month={month} year={year} categories={CATEGORIES} listId={listId} />
 
@@ -107,7 +53,7 @@ export default function ShoppingList({ items, month, year, listId }: Props) {
             ))}
           </div>
 
-          <PriceComparison listId={listId} items={items} />
+          <PriceComparisonLazy listId={listId} items={items} />
         </>
       )}
     </div>

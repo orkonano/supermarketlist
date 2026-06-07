@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("../dal", () => ({ verifySession: vi.fn() }));
+vi.mock("../dal", () => ({ verifySession: vi.fn(), getCurrentUser: vi.fn() }));
 vi.mock("workflow/api", () => ({ start: vi.fn() }));
 vi.mock("@/workflows/list-invite", () => ({ listInviteWorkflow: {} }));
 vi.mock("crypto", async (importOriginal) => {
@@ -19,7 +19,7 @@ vi.mock("../prisma", () => ({
 }));
 
 import { inviteToList, acceptInvite } from "../invite-actions";
-import { verifySession } from "../dal";
+import { verifySession, getCurrentUser } from "../dal";
 import { prisma } from "../prisma";
 import { start } from "workflow/api";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
@@ -103,26 +103,25 @@ describe("inviteToList", () => {
     expect(vi.mocked(start)).not.toHaveBeenCalled();
   });
 
-  it("throws when list is deleted between ownership check and workflow", async () => {
-    vi.mocked(prisma.list.findUnique)
-      .mockResolvedValueOnce(fakeList as never)
-      .mockResolvedValueOnce(null);
+  it("succeeds even if the list had been re-fetched (single-fetch path)", async () => {
+    // List name is now captured in the first (and only) list lookup — there is no
+    // second list fetch that could fail if the list is deleted mid-request.
+    vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "user-1", name: "Alice" } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "Alice", emailVerified: false });
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
 
-    await expect(inviteToList("list-1", "bob@example.com")).rejects.toThrow();
+    const result = await inviteToList("list-1", "bob@example.com");
+
+    expect(result).toEqual({ success: true });
   });
 
   it("throws when inviter is deleted between ownership check and workflow", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
-    vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee
+    vi.mocked(getCurrentUser).mockResolvedValue(null); // inviter deleted
 
     await expect(inviteToList("list-1", "bob@example.com")).rejects.toThrow();
   });
@@ -130,9 +129,8 @@ describe("inviteToList", () => {
   it("creates invite and starts workflow on success", async () => {
     vi.mocked(prisma.list.findUnique).mockResolvedValue(fakeList as never);
     vi.mocked(prisma.listInvite.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.user.findUnique)
-      .mockResolvedValueOnce(null) // invitee lookup — not registered
-      .mockResolvedValueOnce({ id: "user-1", name: "Alice", email: "alice@example.com" } as never); // inviter name
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null); // invitee — not registered
+    vi.mocked(getCurrentUser).mockResolvedValue({ name: "Alice", emailVerified: false });
     vi.mocked(prisma.listInvite.create).mockResolvedValue(fakeInvite);
 
     const result = await inviteToList("list-1", "bob@example.com");
@@ -218,5 +216,30 @@ describe("acceptInvite", () => {
     vi.mocked(prisma.$transaction).mockRejectedValue(networkError);
 
     await expect(acceptInvite("fixed-token-hex", "user-2")).rejects.toThrow("Connection timeout");
+  });
+
+  it("skips DB lookups and succeeds when prefetched data is provided", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue([]);
+
+    const result = await acceptInvite("fixed-token-hex", "user-2", {
+      invite: fakeInvite,
+      userEmail: "bob@example.com",
+    });
+
+    expect(result).toEqual({ listId: "list-1" });
+    expect(vi.mocked(prisma.listInvite.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.user.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$transaction)).toHaveBeenCalled();
+  });
+
+  it("returns error via prefetched path when email does not match", async () => {
+    const result = await acceptInvite("fixed-token-hex", "user-2", {
+      invite: fakeInvite,
+      userEmail: "wrong@example.com",
+    });
+
+    expect(result).toEqual({ error: "Esta invitación no corresponde a tu correo electrónico." });
+    expect(vi.mocked(prisma.listInvite.findUnique)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$transaction)).not.toHaveBeenCalled();
   });
 });

@@ -60,7 +60,7 @@ export async function vtexAdapter(
   const url = `${base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(query)}&_from=0&_to=0`;
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (!res.ok) return empty(store);
 
     const data: unknown = await res.json();
@@ -90,7 +90,7 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
   const url = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}&Nrpp=1&view=json&format=json`;
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (!res.ok) return empty("coto");
 
     const data: unknown = await res.json();
