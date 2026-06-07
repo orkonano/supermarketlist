@@ -1,61 +1,38 @@
-"use client";
+import { verifySession, getCurrentUser } from "@/lib/dal";
+import AppShell from "@/app/components/AppShell";
+import NewListForm from "./NewListForm";
 
-import { useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
-import { createList } from "@/lib/list-actions";
-
-export default function NewListPage() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const name = new FormData(e.currentTarget).get("name") as string;
-    setError(null);
-    startTransition(async () => {
-      try {
-        const list = await createList(name);
-        router.push(`/lists/${list.id}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Algo salió mal.");
-      }
-    });
-  }
+export default async function NewListPage() {
+  const session = await verifySession();
+  const user = await getCurrentUser(session.userId);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Nueva lista</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">{error}</p>
-          )}
-          <input
-            name="name"
-            required
-            autoFocus
-            placeholder="Nombre de la lista (ej. Casa, Trabajo)"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-gray-900 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex-1 py-2 px-4 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex-1 py-2 px-4 rounded-md bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
-            >
-              {isPending ? "Creando…" : "Crear"}
-            </button>
-          </div>
-        </form>
+    <AppShell userName={user?.name ?? ""}>
+      <div className="flex items-start justify-center min-h-[calc(100vh-3.5rem)] px-4 pt-16 pb-8">
+        <div
+          className="w-full max-w-sm border"
+          style={{
+            background: "var(--surface-raised)",
+            borderColor: "var(--border)",
+            borderRadius: "var(--radius-xl)",
+            padding: "2rem",
+          }}
+        >
+          <h1
+            className="text-2xl font-bold mb-1"
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--text-primary)",
+            }}
+          >
+            Nueva lista
+          </h1>
+          <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+            Dale un nombre para reconocerla fácilmente.
+          </p>
+          <NewListForm />
+        </div>
       </div>
-    </main>
+    </AppShell>
   );
 }
