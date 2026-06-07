@@ -32,7 +32,20 @@ async function loadAllFromCache(queries: string[]): Promise<{
   staleKeys: Set<string>;
 }> {
   const now = Date.now();
-  const entries = await prisma.priceCache.findMany({ where: { query: { in: queries } } });
+  const entries = await prisma.priceCache.findMany({
+    where: { query: { in: queries } },
+    select: {
+      query: true,
+      supermarket: true,
+      price: true,
+      priceText: true,
+      productName: true,
+      brand: true,
+      productUrl: true,
+      imageUrl: true,
+      fetchedAt: true,
+    },
+  });
   const all = new Map<string, PriceResult>();
   const staleKeys = new Set<string>();
 
