@@ -21,8 +21,6 @@ import {
   serviceCreateList,
   serviceGetList,
   serviceGetListItems,
-  serviceUpdateList,
-  serviceDeleteList,
   serviceAddListItem,
   serviceToggleListItem,
   serviceDeleteListItem,

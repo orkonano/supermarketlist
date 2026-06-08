@@ -27,7 +27,6 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 const SESSION = { userId: "user-1" };
 
 const fakeList = { id: "list-1", name: "Home", ownerId: "user-1" };
-const fakeInviter = { name: "Alice" };
 const fakeInvite = {
   id: "invite-1",
   listId: "list-1",
