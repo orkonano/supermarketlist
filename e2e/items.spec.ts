@@ -25,11 +25,11 @@ test("can toggle an item as checked", async ({ page }) => {
   await page.click('button:has-text("Agregar producto")');
   await page.fill('input[placeholder="Nombre del producto *"]', "Pan");
   await page.click('button:has-text("Agregar")');
-  await expect(page.locator("text=Pan")).toBeVisible();
+  await expect(page.locator("li").filter({ hasText: "Agregado por" }).filter({ hasText: "Pan" })).toBeVisible();
 
   await page.click('button[aria-label="Marcar producto"]');
   await expect(page.locator('button[aria-label="Desmarcar producto"]')).toBeVisible();
-  await expect(page.locator("span.line-through", { hasText: "Pan" })).toBeVisible();
+  await expect(page.locator('span[style*="line-through"]', { hasText: "Pan" })).toBeVisible();
 });
 
 test("can delete an item", async ({ page }) => {

@@ -176,6 +176,21 @@ When existing tests fail after a change, determine the cause before touching any
 
 Never delete or skip a failing test to make CI green without understanding why it failed.
 
+## next/dynamic with ssr: false in Server Components
+
+`ssr: false` is forbidden inside a Server Component — Next.js throws a hard compile error. When a Server Component needs to lazy-load a client-heavy component without SSR, extract the `dynamic(...)` call into a thin `"use client"` wrapper:
+
+```tsx
+// PriceComparisonLazy.tsx
+"use client";
+import dynamic from "next/dynamic";
+
+const Heavy = dynamic(() => import("./Heavy"), { ssr: false });
+export default function HeavyLazy(props) { return <Heavy {...props} />; }
+```
+
+Import the wrapper from the Server Component. The `ssr: false` stays inside the Client Component boundary where it belongs.
+
 ## Error surfacing pattern
 
 When a server action fails during a flow that ends in a redirect, surface the error via:

@@ -3,12 +3,6 @@ import { ServiceError } from "./errors";
 import { ERRORS } from "./constants/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
-export async function assertOwner(listId: string, userId: string) {
-  const list = await prisma.list.findUnique({ where: { id: listId } });
-  if (!list || list.ownerId !== userId) throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
-  return list;
-}
-
 export async function ensureMember(listId: string, userId: string) {
   const member = await prisma.listMember.findUnique({
     where: { listId_userId: { listId, userId } },
@@ -59,33 +53,67 @@ export async function serviceGetUserLists(userId: string) {
 }
 
 export async function serviceGetList(listId: string, userId: string) {
-  await ensureMember(listId, userId);
-  return prisma.list.findUnique({
+  const list = await prisma.list.findUnique({
     where: { id: listId },
     include: {
       owner: { select: { name: true } },
+      members: { where: { userId }, select: { userId: true } },
       _count: { select: { members: true, items: true } },
     },
   });
+
+  if (!list) return null;
+
+  if (list.members.length === 0) {
+    if (list.ownerId === userId) {
+      // Self-heal: owner predates the ListMember write-invariant
+      try {
+        await prisma.listMember.create({ data: { listId, userId } });
+      } catch (err) {
+        if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) throw err;
+      }
+    } else {
+      throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
+    }
+  }
+
+  const { members: _members, ...result } = list;
+  return result;
 }
 
 export async function serviceUpdateList(listId: string, userId: string, name: string) {
-  await assertOwner(listId, userId);
-  return prisma.list.update({
-    where: { id: listId },
-    data: { name: name.trim() },
-  });
+  try {
+    return await prisma.list.update({
+      where: { id: listId, ownerId: userId },
+      data: { name: name.trim() },
+    });
+  } catch (err) {
+    if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
+    }
+    throw err;
+  }
 }
 
 export async function serviceDeleteList(listId: string, userId: string) {
-  await assertOwner(listId, userId);
-  return prisma.list.delete({ where: { id: listId } });
+  try {
+    return await prisma.list.delete({ where: { id: listId, ownerId: userId } });
+  } catch (err) {
+    if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new ServiceError(403, ERRORS.PERMISSION_DENIED);
+    }
+    throw err;
+  }
 }
 
 export async function serviceGetListItems(listId: string, userId: string, month: number, year: number) {
-  await ensureMember(listId, userId);
   return prisma.item.findMany({
-    where: { listId, month, year },
+    where: {
+      listId,
+      month,
+      year,
+      list: { members: { some: { userId } } },
+    },
     orderBy: [{ category: "asc" }, { createdAt: "asc" }],
   });
 }

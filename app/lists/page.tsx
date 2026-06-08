@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getUserLists, deleteList } from "@/lib/list-actions";
 import { verifySession, getCurrentUser } from "@/lib/dal";
-import { logout } from "@/lib/auth-actions";
+import AppShell from "@/app/components/AppShell";
 
 export default async function ListsPage({
   searchParams,
@@ -16,39 +16,37 @@ export default async function ListsPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <AppShell userName={user?.name ?? ""}>
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Mis listas</h1>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-sm text-gray-600">Hola, {user?.name}</span>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/settings/api-keys"
-                className="text-xs text-gray-500 hover:text-blue-600 underline transition-colors"
-              >
-                API Keys
-              </Link>
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="text-xs text-gray-500 hover:text-red-600 underline transition-colors"
-                >
-                  Cerrar sesión
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
+        <h1
+          className="text-3xl font-bold mb-8"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Mis listas
+        </h1>
 
         {!user?.emailVerified && (
-          <div className="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+          <div
+            className="mb-4 px-4 py-3 rounded-lg text-sm border"
+            style={{
+              background: "oklch(97% 0.05 85)",
+              borderColor: "oklch(82% 0.08 85)",
+              color: "oklch(40% 0.06 85)",
+            }}
+          >
             Revisá tu correo y hacé clic en el enlace de verificación para confirmar tu cuenta.
           </div>
         )}
 
         {params.error && (
-          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div
+            className="mb-4 px-4 py-3 rounded-lg text-sm border"
+            style={{
+              background: "var(--destructive-50)",
+              borderColor: "var(--destructive-500)",
+              color: "var(--destructive-500)",
+            }}
+          >
             {params.error}
           </div>
         )}
@@ -57,27 +55,37 @@ export default async function ListsPage({
           {lists.map((list) => (
             <div
               key={list.id}
-              className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between"
+              data-testid="list-card"
+              className="rounded-xl p-4 flex items-center justify-between border transition-shadow hover:shadow-md"
+              style={{
+                background: "var(--surface-raised)",
+                borderColor: "var(--border)",
+              }}
             >
               <div>
                 <Link
                   href={`/lists/${list.id}`}
-                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                  className="text-lg font-semibold transition-colors hover:underline"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   {list.name}
                 </Link>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {list._count.members} {list._count.members !== 1 ? "miembros" : "miembro"} ·{" "}
-                  {list._count.items} {list._count.items !== 1 ? "productos" : "producto"}
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  {list._count.members}{" "}
+                  {list._count.members !== 1 ? "miembros" : "miembro"} ·{" "}
+                  {list._count.items}{" "}
+                  {list._count.items !== 1 ? "productos" : "producto"}
                   {list.ownerId !== session.userId && (
                     <span className="ml-1">· de {list.owner.name}</span>
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-1">
                 <Link
                   href={`/lists/${list.id}/share`}
-                  className="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded transition-colors"
+                  className="text-xs px-2 py-1.5 rounded-md transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   Compartir
                 </Link>
@@ -85,14 +93,16 @@ export default async function ListsPage({
                   <>
                     <Link
                       href={`/lists/${list.id}?edit=1`}
-                      className="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded transition-colors"
+                      className="text-xs px-2 py-1.5 rounded-md transition-colors"
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       Renombrar
                     </Link>
                     <form action={deleteList.bind(null, list.id)}>
                       <button
                         type="submit"
-                        className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded transition-colors"
+                        className="text-xs px-2 py-1.5 rounded-md transition-colors"
+                        style={{ color: "var(--text-muted)" }}
                       >
                         Eliminar
                       </button>
@@ -104,22 +114,31 @@ export default async function ListsPage({
           ))}
 
           {lists.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <div className="text-4xl mb-3">📋</div>
-              <p className="text-lg">Todavía no tenés listas.</p>
-              <p className="text-sm">¡Creá tu primera lista abajo!</p>
+            <div
+              className="text-center py-16 rounded-xl border-2 border-dashed"
+              style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+            >
+              <div className="text-5xl mb-4">🛒</div>
+              <p className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
+                Todavía no tenés listas.
+              </p>
+              <p className="text-sm mt-1">¡Creá tu primera lista abajo!</p>
             </div>
           )}
         </div>
 
         <Link
           href="/lists/new"
-          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-2xl shadow-sm transition-colors"
+          className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors"
+          style={{
+            background: "var(--brand-500)",
+            color: "white",
+          }}
         >
-          <span className="text-xl">+</span>
+          <span className="text-xl leading-none">+</span>
           Nueva lista
         </Link>
       </div>
-    </main>
+    </AppShell>
   );
 }

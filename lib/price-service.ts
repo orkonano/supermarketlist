@@ -27,24 +27,45 @@ function priceResultToRecord(r: PriceResult) {
   };
 }
 
-async function loadFreshFromCache(queries: string[]): Promise<Map<string, PriceResult>> {
+async function loadAllFromCache(queries: string[]): Promise<{
+  all: Map<string, PriceResult>;
+  staleKeys: Set<string>;
+}> {
   const now = Date.now();
-  const entries = await prisma.priceCache.findMany({ where: { query: { in: queries } } });
-  const fresh = new Map<string, PriceResult>();
+  const entries = await prisma.priceCache.findMany({
+    where: { query: { in: queries } },
+    select: {
+      query: true,
+      supermarket: true,
+      price: true,
+      priceText: true,
+      productName: true,
+      brand: true,
+      productUrl: true,
+      imageUrl: true,
+      fetchedAt: true,
+    },
+  });
+  const all = new Map<string, PriceResult>();
+  const staleKeys = new Set<string>();
+
   for (const e of entries) {
-    if (now - e.fetchedAt.getTime() < PRICE_CACHE_TTL_MS) {
-      fresh.set(cacheKey(e.query, e.supermarket), {
-        supermarket: e.supermarket as Supermarket,
-        price: e.price,
-        priceText: e.priceText,
-        productName: e.productName,
-        brand: e.brand,
-        productUrl: e.productUrl,
-        imageUrl: e.imageUrl,
-      });
+    const key = cacheKey(e.query, e.supermarket);
+    const result: PriceResult = {
+      supermarket: e.supermarket as Supermarket,
+      price: e.price,
+      priceText: e.priceText,
+      productName: e.productName,
+      brand: e.brand,
+      productUrl: e.productUrl,
+      imageUrl: e.imageUrl,
+    };
+    all.set(key, result);
+    if (now - e.fetchedAt.getTime() >= PRICE_CACHE_TTL_MS) {
+      staleKeys.add(key);
     }
   }
-  return fresh;
+  return { all, staleKeys };
 }
 
 async function fetchAndCache(
@@ -56,25 +77,36 @@ async function fetchAndCache(
     ? await cotoAdapter(query)
     : await vtexAdapter(supermarket, query);
   fresh.set(cacheKey(query, supermarket), r);
-  await prisma.priceCache.upsert({
-    where: { query_supermarket: { query, supermarket } },
-    create: { query, supermarket, ...priceResultToRecord(r) },
-    update: { ...priceResultToRecord(r), fetchedAt: new Date() },
-  });
 }
 
 async function fetchAndCacheMissing(
   queries: string[],
-  fresh: Map<string, PriceResult>
+  fresh: Map<string, PriceResult>,
+  staleKeys: Set<string> = new Set()
 ): Promise<void> {
-  const tasks: Promise<void>[] = [];
+  const missing: { query: string; supermarket: Supermarket }[] = [];
   for (const query of queries) {
     for (const { key: supermarket } of SUPERMARKETS) {
-      if (fresh.has(cacheKey(query, supermarket))) continue;
-      tasks.push(fetchAndCache(query, supermarket, fresh));
+      const key = cacheKey(query, supermarket);
+      if (!fresh.has(key) || staleKeys.has(key)) {
+        missing.push({ query, supermarket });
+      }
     }
   }
-  await Promise.all(tasks);
+  if (missing.length === 0) return;
+
+  await Promise.all(missing.map(({ query, supermarket }) => fetchAndCache(query, supermarket, fresh)));
+
+  await prisma.$transaction(
+    missing.map(({ query, supermarket }) => {
+      const r = fresh.get(cacheKey(query, supermarket))!;
+      return prisma.priceCache.upsert({
+        where: { query_supermarket: { query, supermarket } },
+        create: { query, supermarket, ...priceResultToRecord(r) },
+        update: { ...priceResultToRecord(r), fetchedAt: new Date() },
+      });
+    })
+  );
 }
 
 function buildResult(itemNames: string[], fresh: Map<string, PriceResult>): ItemPrices {
@@ -93,7 +125,19 @@ export async function serviceGetItemPrices(
 ): Promise<ItemPrices> {
   await ensureMember(listId, userId);
   const queries = [...new Set(itemNames.map((n) => n.toLowerCase().trim()))];
-  const fresh = await loadFreshFromCache(queries);
-  await fetchAndCacheMissing(queries, fresh);
-  return buildResult(itemNames, fresh);
+  const { all, staleKeys } = await loadAllFromCache(queries);
+
+  const missingKeys = queries.flatMap((q) =>
+    SUPERMARKETS.filter(({ key: s }) => !all.has(cacheKey(q, s))).map(({ key: s }) => ({ q, s }))
+  );
+
+  if (missingKeys.length > 0) {
+    // Await missing entries — no cached data to show yet
+    await fetchAndCacheMissing(queries, all, new Set());
+  } else if (staleKeys.size > 0) {
+    // Return stale data immediately; refresh silently in background
+    void fetchAndCacheMissing(queries, all, staleKeys);
+  }
+
+  return buildResult(itemNames, all);
 }
