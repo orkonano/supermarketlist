@@ -15,6 +15,33 @@ const inputStyle = {
   outline: "none",
 };
 
+function RenameListActions({ isPending, onCancel }: { isPending: boolean; onCancel: () => void }) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-3 py-2 rounded-lg text-sm transition-colors"
+        style={{ border: "1px solid var(--border)", color: "var(--text-secondary)", background: "transparent" }}
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+        style={{
+          background: isPending ? "var(--brand-400)" : "var(--brand-500)",
+          color: "white",
+          opacity: isPending ? 0.7 : 1,
+        }}
+      >
+        {isPending ? "Guardando…" : "Guardar"}
+      </button>
+    </>
+  );
+}
+
 export default function RenameListForm({ listId, currentName }: { listId: string; currentName: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -47,30 +74,7 @@ export default function RenameListForm({ listId, currentName }: { listId: string
           <p className="text-xs" style={{ color: "var(--destructive-500)" }}>{error}</p>
         )}
         <input name="name" defaultValue={currentName} required autoFocus style={inputStyle} />
-        <button
-          type="button"
-          onClick={() => router.replace(`/lists/${listId}`)}
-          className="px-3 py-2 rounded-lg text-sm transition-colors"
-          style={{
-            border: "1px solid var(--border)",
-            color: "var(--text-secondary)",
-            background: "transparent",
-          }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-          style={{
-            background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-            color: "white",
-            opacity: isPending ? 0.7 : 1,
-          }}
-        >
-          {isPending ? "Guardando…" : "Guardar"}
-        </button>
+        <RenameListActions isPending={isPending} onCancel={() => router.replace(`/lists/${listId}`)} />
       </form>
     </div>
   );
