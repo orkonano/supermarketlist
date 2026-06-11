@@ -133,6 +133,13 @@ serverExternalPackages: [
 ],
 ```
 
+## Workflow bundle is generated — never commit it
+
+`app/.well-known/workflow/v1/flow/route.js` is a **generated** snapshot of the `workflows/` source, produced by `withWorkflow` at `npm run build`. It is gitignored via `app/.well-known/workflow/v1/.gitignore` (a bare `*`), so `git add` on it fails with "The following paths are ignored by one of your .gitignore files".
+
+- Never commit it, and never edit it directly to silence a lint warning — it is overwritten on the next build.
+- After changing any `workflows/*.ts` signature (e.g. switching positional params to an options object), the on-disk bundle is **stale** until you run `npm run build`. Vercel regenerates it on deploy.
+
 ## package-lock.json
 
 Always commit `package-lock.json` alongside any `package.json` changes. The CI pipeline uses `npm ci`, which fails if the two files are out of sync.
@@ -157,6 +164,15 @@ Key forms:
 - "Registrate" (not "Regístrate")
 
 Apply this to any new string from the start — do not write it in English or neutral Spanish first.
+
+## ESLint clean-code rules
+
+The config (`eslint.config.mjs`) enforces `sonarjs` plus `max-lines-per-function` (50), `complexity` (10), and `max-params` (4) as **warnings**.
+
+`sonarjs/no-duplicate-string` (threshold 3) counts occurrences **across a whole file, not per function**. Extracting repeated JSX into a sub-component *in the same file* shrinks the function (helps `max-lines-per-function`) but does **not** clear a dup-string warning — the literals (e.g. CSS tokens like `"var(--border)"`) are still in the file. To clear it, either:
+
+- extract the sub-component into a **separate file** (the literals physically leave the original file), or
+- hoist the repeated literal to a **module-level `const`** (e.g. `const BORDER = "var(--border)"`).
 
 ## Testing
 
