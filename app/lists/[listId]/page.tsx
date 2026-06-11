@@ -6,8 +6,8 @@ import { normalizeMonthYear } from "@/lib/date-utils";
 import VerificationBanner from "@/app/components/VerificationBanner";
 import RenameListForm from "@/app/components/RenameListForm";
 import ItemsSection from "./ItemsSection";
+import ListPageHeader from "./ListPageHeader";
 import AppShell from "@/app/components/AppShell";
-import Link from "next/link";
 
 export default async function ListPage({
   params,
@@ -34,37 +34,7 @@ export default async function ListPage({
   return (
     <AppShell userName={user?.name ?? ""}>
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/lists"
-            className="text-sm transition-colors"
-            style={{ color: "var(--text-muted)" }}
-          >
-            ← Listas
-          </Link>
-          <span style={{ color: "var(--border-strong)" }}>/</span>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-            {list.name}
-          </h1>
-          <div className="ml-auto flex items-center gap-1">
-            <Link
-              href={`/lists/${listId}/share`}
-              className="text-xs px-2 py-1 rounded-md transition-colors"
-              style={{ color: "var(--brand-500)" }}
-            >
-              Compartir
-            </Link>
-            {isOwner && (
-              <Link
-                href={`/lists/${listId}?edit=1`}
-                className="text-xs px-2 py-1 rounded-md transition-colors"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Renombrar
-              </Link>
-            )}
-          </div>
-        </div>
+        <ListPageHeader listId={listId} listName={list.name} isOwner={isOwner} />
 
         {sp.edit === "1" && isOwner && <RenameListForm listId={listId} currentName={list.name} />}
         {sp.verified === "1" && <VerificationBanner verified />}
