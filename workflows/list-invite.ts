@@ -1,24 +1,20 @@
 import { FatalError, RetryableError } from "workflow";
 
-export async function listInviteWorkflow(
-  email: string,
-  inviterName: string,
-  listName: string,
-  token: string,
-  userExists: boolean
-) {
+export type InviteParams = {
+  email: string;
+  inviterName: string;
+  listName: string;
+  token: string;
+  userExists: boolean;
+};
+
+export async function listInviteWorkflow(params: InviteParams) {
   "use workflow";
 
-  await sendInviteEmail(email, inviterName, listName, token, userExists);
+  await sendInviteEmail(params);
 }
 
-async function sendInviteEmail(
-  email: string,
-  inviterName: string,
-  listName: string,
-  token: string,
-  userExists: boolean
-) {
+async function sendInviteEmail({ email, inviterName, listName, token, userExists }: InviteParams) {
   "use step";
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";

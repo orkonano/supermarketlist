@@ -62,7 +62,9 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
     data: { listId, email, invitedById: session.userId, token, expiresAt },
   });
 
-  await start(listInviteWorkflow, [email, inviter.name, listName, token, !!invitee]);
+  await start(listInviteWorkflow, [
+    { email, inviterName: inviter.name, listName, token, userExists: !!invitee },
+  ]);
 
   revalidatePath(`/lists/${listId}/share`);
   return { success: true };
