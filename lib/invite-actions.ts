@@ -62,7 +62,9 @@ export async function inviteToList(listId: string, email: string): Promise<Invit
     data: { listId, email, invitedById: session.userId, token, expiresAt },
   });
 
-  await start(listInviteWorkflow, [email, inviter.name, listName, token, !!invitee]);
+  await start(listInviteWorkflow, [
+    { email, inviterName: inviter.name, listName, token, userExists: !!invitee },
+  ]);
 
   revalidatePath(`/lists/${listId}/share`);
   return { success: true };
@@ -73,6 +75,26 @@ type PrefetchedInviteData = {
   userEmail: string;
 };
 
+async function resolveUserEmail(userId: string, prefetched?: PrefetchedInviteData): Promise<string | undefined> {
+  if (prefetched) return prefetched.userEmail;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  return user?.email;
+}
+
+async function commitMembership(inviteId: string, listId: string, userId: string): Promise<void> {
+  try {
+    await prisma.$transaction([
+      prisma.listMember.create({ data: { listId, userId } }),
+      prisma.listInvite.update({ where: { id: inviteId }, data: { accepted: true } }),
+    ]);
+  } catch (err) {
+    // P2002 = membership already exists; treat the invite as accepted.
+    if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) {
+      throw err;
+    }
+  }
+}
+
 export async function acceptInvite(
   token: string,
   userId: string,
@@ -82,23 +104,12 @@ export async function acceptInvite(
   if (!invite) return { error: "El enlace de invitación es inválido." };
   if (invite.expiresAt < new Date()) return { error: "Esta invitación expiró." };
 
-  const userEmail = prefetched
-    ? prefetched.userEmail
-    : (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email;
+  const userEmail = await resolveUserEmail(userId, prefetched);
   if (!userEmail || userEmail !== invite.email) return { error: "Esta invitación no corresponde a tu correo electrónico." };
 
   if (invite.accepted) return { listId: invite.listId };
 
-  try {
-    await prisma.$transaction([
-      prisma.listMember.create({ data: { listId: invite.listId, userId } }),
-      prisma.listInvite.update({ where: { id: invite.id }, data: { accepted: true } }),
-    ]);
-  } catch (err) {
-    if (!(err instanceof PrismaClientKnownRequestError && err.code === "P2002")) {
-      throw err;
-    }
-  }
+  await commitMembership(invite.id, invite.listId, userId);
 
   revalidatePath("/lists");
   return { listId: invite.listId };

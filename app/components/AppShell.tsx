@@ -1,10 +1,38 @@
 import Link from "next/link";
 import { logout } from "@/lib/auth-actions";
 
+const MUTED = "var(--text-muted)";
+
 type Props = {
   userName: string;
   children: React.ReactNode;
 };
+
+function AppShellNav({ userName }: { userName: string }) {
+  return (
+    <nav className="flex items-center gap-1">
+      <span className="text-sm mr-3" style={{ color: MUTED }}>
+        {userName}
+      </span>
+      <Link
+        href="/settings/api-keys"
+        className="text-xs px-2 py-1.5 rounded-md transition-colors"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        API Keys
+      </Link>
+      <form action={logout} className="inline">
+        <button
+          type="submit"
+          className="text-xs px-2 py-1.5 rounded-md transition-colors"
+          style={{ color: MUTED }}
+        >
+          Cerrar sesión
+        </button>
+      </form>
+    </nav>
+  );
+}
 
 export default function AppShell({ userName, children }: Props) {
   return (
@@ -29,30 +57,7 @@ export default function AppShell({ userName, children }: Props) {
             Súper
           </Link>
 
-          <nav className="flex items-center gap-1">
-            <span
-              className="text-sm mr-3"
-              style={{ color: "var(--text-muted)" }}
-            >
-              {userName}
-            </span>
-            <Link
-              href="/settings/api-keys"
-              className="text-xs px-2 py-1.5 rounded-md transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              API Keys
-            </Link>
-            <form action={logout} className="inline">
-              <button
-                type="submit"
-                className="text-xs px-2 py-1.5 rounded-md transition-colors"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Cerrar sesión
-              </button>
-            </form>
-          </nav>
+          <AppShellNav userName={userName} />
         </div>
       </header>
 

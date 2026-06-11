@@ -3,6 +3,41 @@
 import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
 import { createList } from "@/lib/list-actions";
+import { FormMessage } from "@/app/components/form-helpers";
+
+const RADIUS_MD = "var(--radius-md)";
+
+function NewListActions({ isPending, onCancel }: { isPending: boolean; onCancel: () => void }) {
+  return (
+    <div className="flex gap-2 pt-1">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex-1 py-2.5 px-4 text-sm font-medium transition-colors"
+        style={{
+          borderRadius: RADIUS_MD,
+          border: "1px solid var(--border)",
+          color: "var(--text-secondary)",
+          background: "var(--surface-raised)",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="flex-1 py-2.5 px-4 text-sm font-semibold text-white transition-all"
+        style={{
+          borderRadius: RADIUS_MD,
+          background: isPending ? "var(--brand-400)" : "var(--brand-500)",
+          opacity: isPending ? 0.7 : 1,
+        }}
+      >
+        {isPending ? "Creando…" : "Crear lista"}
+      </button>
+    </div>
+  );
+}
 
 export default function NewListForm() {
   const router = useRouter();
@@ -25,17 +60,7 @@ export default function NewListForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <p
-          className="text-sm px-3 py-2 rounded-lg"
-          style={{
-            color: "var(--destructive-500)",
-            background: "var(--destructive-50)",
-          }}
-        >
-          {error}
-        </p>
-      )}
+      <FormMessage message={error ?? undefined} />
       <input
         name="name"
         required
@@ -43,7 +68,7 @@ export default function NewListForm() {
         placeholder="ej: Casa, Trabajo, Cumpleaños…"
         className="w-full px-4 py-3 text-base focus:outline-none transition-colors"
         style={{
-          borderRadius: "var(--radius-md)",
+          borderRadius: RADIUS_MD,
           border: "1.5px solid var(--border-strong)",
           background: "var(--surface)",
           color: "var(--text-primary)",
@@ -51,33 +76,7 @@ export default function NewListForm() {
         onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand-500)")}
         onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-strong)")}
       />
-      <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex-1 py-2.5 px-4 text-sm font-medium transition-colors"
-          style={{
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border)",
-            color: "var(--text-secondary)",
-            background: "var(--surface-raised)",
-          }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="flex-1 py-2.5 px-4 text-sm font-semibold text-white transition-all"
-          style={{
-            borderRadius: "var(--radius-md)",
-            background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-            opacity: isPending ? 0.7 : 1,
-          }}
-        >
-          {isPending ? "Creando…" : "Crear lista"}
-        </button>
-      </div>
+      <NewListActions isPending={isPending} onCancel={() => router.back()} />
     </form>
   );
 }

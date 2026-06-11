@@ -18,35 +18,19 @@ async function handleMcp(req: Request): Promise<Response> {
   return transport.handleRequest(req);
 }
 
-export async function POST(req: Request) {
+const UNAUTHORIZED_ERROR = "No autorizado";
+
+async function handleMcpRequest(req: Request): Promise<Response> {
   try {
     return await handleMcp(req);
   } catch (e) {
     if (e instanceof ApiAuthError) {
-      return Response.json({ error: "No autorizado" }, { status: 401 });
+      return Response.json({ error: UNAUTHORIZED_ERROR }, { status: 401 });
     }
     throw e;
   }
 }
 
-export async function GET(req: Request) {
-  try {
-    return await handleMcp(req);
-  } catch (e) {
-    if (e instanceof ApiAuthError) {
-      return Response.json({ error: "No autorizado" }, { status: 401 });
-    }
-    throw e;
-  }
-}
-
-export async function DELETE(req: Request) {
-  try {
-    return await handleMcp(req);
-  } catch (e) {
-    if (e instanceof ApiAuthError) {
-      return Response.json({ error: "No autorizado" }, { status: 401 });
-    }
-    throw e;
-  }
-}
+export const POST = handleMcpRequest;
+export const GET = handleMcpRequest;
+export const DELETE = handleMcpRequest;
