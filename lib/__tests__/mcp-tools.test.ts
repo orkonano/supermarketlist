@@ -21,6 +21,8 @@ import {
   serviceCreateList,
   serviceGetList,
   serviceGetListItems,
+  serviceUpdateList,
+  serviceDeleteList,
   serviceAddListItem,
   serviceToggleListItem,
   serviceDeleteListItem,
@@ -135,6 +137,12 @@ describe("add_item", () => {
       expect.objectContaining({ name: "Leche" })
     );
   });
+
+  it("returns isError on service failure", async () => {
+    vi.mocked(serviceAddListItem).mockRejectedValue(new Error("DB error"));
+    const result = await callTool(makeServer(), "add_item", { listId: "list-1", name: "Leche" }) as { isError: boolean };
+    expect(result.isError).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -146,6 +154,12 @@ describe("toggle_item", () => {
     vi.mocked(serviceToggleListItem).mockResolvedValue({ ...fakeItem, checked: true });
     await callTool(makeServer(), "toggle_item", { listId: "list-1", itemId: "item-1", checked: true });
     expect(vi.mocked(serviceToggleListItem)).toHaveBeenCalledWith("list-1", "user-1", "item-1", true);
+  });
+
+  it("returns isError on service failure", async () => {
+    vi.mocked(serviceToggleListItem).mockRejectedValue(new Error("DB error"));
+    const result = await callTool(makeServer(), "toggle_item", { listId: "list-1", itemId: "item-1", checked: true }) as { isError: boolean };
+    expect(result.isError).toBe(true);
   });
 });
 
@@ -159,6 +173,52 @@ describe("delete_item", () => {
     const result = await callTool(makeServer(), "delete_item", { listId: "list-1", itemId: "item-1" }) as { content: { text: string }[] };
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.ok).toBe(true);
+  });
+
+  it("returns isError on service failure", async () => {
+    vi.mocked(serviceDeleteListItem).mockRejectedValue(new Error("DB error"));
+    const result = await callTool(makeServer(), "delete_item", { listId: "list-1", itemId: "item-1" }) as { isError: boolean };
+    expect(result.isError).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rename_list
+// ---------------------------------------------------------------------------
+
+describe("rename_list", () => {
+  it("renames the list and returns ok", async () => {
+    vi.mocked(serviceUpdateList).mockResolvedValue(undefined as never);
+    const result = await callTool(makeServer(), "rename_list", { listId: "list-1", name: "Nueva" }) as { content: { text: string }[] };
+    expect(vi.mocked(serviceUpdateList)).toHaveBeenCalledWith("list-1", "user-1", "Nueva");
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns isError on service failure", async () => {
+    vi.mocked(serviceUpdateList).mockRejectedValue(new Error("No autorizado"));
+    const result = await callTool(makeServer(), "rename_list", { listId: "list-1", name: "Nueva" }) as { isError: boolean };
+    expect(result.isError).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// delete_list
+// ---------------------------------------------------------------------------
+
+describe("delete_list", () => {
+  it("deletes the list and returns ok", async () => {
+    vi.mocked(serviceDeleteList).mockResolvedValue(undefined as never);
+    const result = await callTool(makeServer(), "delete_list", { listId: "list-1" }) as { content: { text: string }[] };
+    expect(vi.mocked(serviceDeleteList)).toHaveBeenCalledWith("list-1", "user-1");
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns isError on service failure", async () => {
+    vi.mocked(serviceDeleteList).mockRejectedValue(new Error("No autorizado"));
+    const result = await callTool(makeServer(), "delete_list", { listId: "list-1" }) as { isError: boolean };
+    expect(result.isError).toBe(true);
   });
 });
 
