@@ -138,14 +138,28 @@ export async function serviceAddListItem(
   });
 }
 
+// The item mutations scope the write with a compound `where: { id, listId }`. If the
+// item belongs to a different list (cross-list access), that matches no row and Prisma
+// throws P2025 — translate it to a clean 404 instead of letting it surface as a 500.
+async function runScopedItemMutation<T>(op: () => Promise<T>): Promise<T> {
+  try {
+    return await op();
+  } catch (err) {
+    if (err instanceof PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new ServiceError(404, ERRORS.ITEM_NOT_FOUND);
+    }
+    throw err;
+  }
+}
+
 export async function serviceToggleListItem(listId: string, userId: string, itemId: string, checked: boolean) {
   await ensureMember(listId, userId);
-  return prisma.item.update({ where: { id: itemId, listId }, data: { checked } });
+  return runScopedItemMutation(() => prisma.item.update({ where: { id: itemId, listId }, data: { checked } }));
 }
 
 export async function serviceDeleteListItem(listId: string, userId: string, itemId: string) {
   await ensureMember(listId, userId);
-  return prisma.item.delete({ where: { id: itemId, listId } });
+  return runScopedItemMutation(() => prisma.item.delete({ where: { id: itemId, listId } }));
 }
 
 export async function serviceUpdateListItem(
@@ -155,5 +169,5 @@ export async function serviceUpdateListItem(
   data: { name?: string; quantity?: string | null; category?: string | null; checked?: boolean }
 ) {
   await ensureMember(listId, userId);
-  return prisma.item.update({ where: { id: itemId, listId }, data });
+  return runScopedItemMutation(() => prisma.item.update({ where: { id: itemId, listId }, data }));
 }

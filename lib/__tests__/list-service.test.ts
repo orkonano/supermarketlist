@@ -4,10 +4,19 @@ vi.mock("../prisma", () => ({
   prisma: {
     list: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
     listMember: { findUnique: vi.fn(), create: vi.fn() },
+    item: { update: vi.fn(), delete: vi.fn() },
   },
 }));
 
-import { ensureMember, serviceGetList, serviceUpdateList, serviceDeleteList } from "../list-service";
+import {
+  ensureMember,
+  serviceGetList,
+  serviceUpdateList,
+  serviceDeleteList,
+  serviceToggleListItem,
+  serviceDeleteListItem,
+  serviceUpdateListItem,
+} from "../list-service";
 import { prisma } from "../prisma";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { ServiceError } from "../errors";
@@ -190,5 +199,112 @@ describe("serviceDeleteList", () => {
     vi.mocked(prisma.list.delete).mockRejectedValue(new Error("DB down"));
 
     await expect(serviceDeleteList("list-1", "user-1")).rejects.toThrow("DB down");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Item mutations — scoped to the parent list (compound where + P2025 → 404)
+// ---------------------------------------------------------------------------
+
+const MEMBER = { listId: "list-1", userId: "user-1", joinedAt: new Date() };
+const ITEM = { id: "item-1", name: "Leche", listId: "list-1", checked: false };
+
+function newP2025() {
+  return new PrismaClientKnownRequestError("Record not found", { code: "P2025", clientVersion: "6.0.0" });
+}
+
+// Resolve to the thrown error (or null on success) so we can assert its status.
+async function rejection(promise: Promise<unknown>): Promise<unknown> {
+  return promise.then(() => null, (e) => e);
+}
+
+describe("serviceToggleListItem", () => {
+  it("toggles the item scoped to its list", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.update).mockResolvedValue({ ...ITEM, checked: true } as never);
+
+    const result = await serviceToggleListItem("list-1", "user-1", "item-1", true);
+
+    expect(vi.mocked(prisma.item.update)).toHaveBeenCalledWith({
+      where: { id: "item-1", listId: "list-1" },
+      data: { checked: true },
+    });
+    expect(result).toMatchObject({ id: "item-1", checked: true });
+  });
+
+  it("rejects with 403 when the user is not a member (auth guard, no write attempted)", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.list.findUnique).mockResolvedValue({ id: "list-1", ownerId: "other-user" } as never);
+
+    const err = await rejection(serviceToggleListItem("list-1", "user-1", "item-1", true));
+
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(403);
+    expect(vi.mocked(prisma.item.update)).not.toHaveBeenCalled();
+  });
+
+  it("translates a cross-list P2025 into a 404 instead of a 500", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.update).mockRejectedValue(newP2025());
+
+    const err = await rejection(serviceToggleListItem("list-1", "user-1", "item-from-other-list", true));
+
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(404);
+  });
+
+  it("propagates non-P2025 errors unchanged", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.update).mockRejectedValue(new Error("DB down"));
+
+    await expect(serviceToggleListItem("list-1", "user-1", "item-1", true)).rejects.toThrow("DB down");
+  });
+});
+
+describe("serviceDeleteListItem", () => {
+  it("deletes the item scoped to its list", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.delete).mockResolvedValue(ITEM as never);
+
+    await serviceDeleteListItem("list-1", "user-1", "item-1");
+
+    expect(vi.mocked(prisma.item.delete)).toHaveBeenCalledWith({
+      where: { id: "item-1", listId: "list-1" },
+    });
+  });
+
+  it("translates a cross-list P2025 into a 404", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.delete).mockRejectedValue(newP2025());
+
+    const err = await rejection(serviceDeleteListItem("list-1", "user-1", "item-from-other-list"));
+
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(404);
+  });
+});
+
+describe("serviceUpdateListItem", () => {
+  it("updates the item scoped to its list", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.update).mockResolvedValue({ ...ITEM, name: "Pan" } as never);
+
+    const result = await serviceUpdateListItem("list-1", "user-1", "item-1", { name: "Pan" });
+
+    expect(vi.mocked(prisma.item.update)).toHaveBeenCalledWith({
+      where: { id: "item-1", listId: "list-1" },
+      data: { name: "Pan" },
+    });
+    expect(result).toMatchObject({ name: "Pan" });
+  });
+
+  it("translates a cross-list P2025 into a 404", async () => {
+    vi.mocked(prisma.listMember.findUnique).mockResolvedValue(MEMBER as never);
+    vi.mocked(prisma.item.update).mockRejectedValue(newP2025());
+
+    const err = await rejection(serviceUpdateListItem("list-1", "user-1", "item-from-other-list", { name: "Pan" }));
+
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(404);
   });
 });
