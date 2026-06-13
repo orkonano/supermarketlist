@@ -13,9 +13,8 @@
 *.db-wal
 
 # Claude Code memory
-# (.claude/skills symlinks are force-tracked in git so they survive into worktrees;
-#  the copy mechanism here does not preserve symlinks, so do NOT list .claude/skills)
 .claude/agents
+.claude/skills
 .claude/launch.json
 .claude/settings.json
 .claude/settings.local.json
