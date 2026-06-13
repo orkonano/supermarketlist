@@ -57,6 +57,7 @@ next-env.d.ts
 /e2e/.auth/
 /playwright-report/
 /test-results/
+.playwright-mcp/
 
 # build caches (SWC = Next.js's internal Rust compiler cache)
 .swc/
