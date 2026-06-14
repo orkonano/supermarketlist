@@ -23,7 +23,13 @@ export default function PriceComparison({ listId, items }: Props) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
 
-  const itemNames = useMemo(() => items.map((i) => i.name), [items]);
+  // `items` is a fresh array on every parent re-render — and a Server Action call
+  // auto-revalidates the route, so `ShoppingList` re-renders and hands us a new `items`
+  // reference each time. Keying `itemNames` on the reference would give `fetchPrices` a
+  // new identity, re-firing the effect below in an infinite fetch→revalidate→re-render
+  // loop. Key on the serialized names instead so the identity is stable when names are.
+  const itemNamesKey = JSON.stringify(items.map((i) => i.name));
+  const itemNames = useMemo(() => JSON.parse(itemNamesKey) as string[], [itemNamesKey]);
 
   const fetchPrices = useCallback(async () => {
     setLoading(true);
