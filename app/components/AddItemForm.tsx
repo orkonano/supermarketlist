@@ -28,11 +28,10 @@ function AddItemActions({ isPending, onClose }: { isPending: boolean; onClose: (
       <button
         type="button"
         onClick={onClose}
-        className="flex-1 py-2 px-4 rounded-lg text-sm transition-colors"
+        className="flex-1 py-2 px-4 rounded-lg text-sm transition-colors hover:bg-[var(--surface-muted)]"
         style={{
           border: "1px solid var(--border)",
           color: "var(--text-secondary)",
-          background: "transparent",
         }}
       >
         Cancelar
@@ -40,12 +39,10 @@ function AddItemActions({ isPending, onClose }: { isPending: boolean; onClose: (
       <button
         type="submit"
         disabled={isPending}
-        className="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-colors"
-        style={{
-          background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-          color: "white",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-white transition-colors ${
+          isPending ? "bg-[var(--brand-400)]" : "bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+        }`}
+        style={{ opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? "Agregando…" : "Agregar"}
       </button>
@@ -129,8 +126,7 @@ export default function AddItemForm({ month, year, categories, listId }: Props) 
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors"
-        style={{ background: "var(--brand-500)", color: "white" }}
+        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl text-white transition-colors bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
       >
         <span className="text-xl leading-none">+</span>
         Agregar producto

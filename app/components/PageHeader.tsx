@@ -13,7 +13,10 @@ export default function PageHeader({
 }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Link href={backHref} className="text-sm transition-colors" style={{ color: "var(--text-muted)" }}>
+      <Link
+        href={backHref}
+        className="text-sm transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+      >
         ← {backLabel}
       </Link>
       <span style={{ color: "var(--border-strong)" }}>/</span>

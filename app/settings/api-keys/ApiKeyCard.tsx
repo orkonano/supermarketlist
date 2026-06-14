@@ -42,7 +42,7 @@ export default function ApiKeyCard({ apiKey }: { apiKey: ApiKeyData }) {
       >
         <button
           type="submit"
-          className="text-xs px-3 py-1.5 rounded-md transition-colors border"
+          className="text-xs px-3 py-1.5 rounded-md transition-colors border hover:bg-[var(--destructive-50)]"
           style={{ color: "var(--destructive-500)", borderColor: "var(--border)" }}
         >
           Revocar
