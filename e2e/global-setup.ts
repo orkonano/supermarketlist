@@ -3,7 +3,7 @@ import { createClient } from "@libsql/client";
 import bcrypt from "bcryptjs";
 import { mkdirSync, writeFileSync } from "fs";
 import { execSync } from "child_process";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
 
 export default async function globalSetup() {
@@ -36,10 +36,26 @@ export default async function globalSetup() {
     args: [id, "E2E Test User", email, hashedPassword],
   });
 
+  // Seed an API key for the REST + MCP integration suite (e2e/api/*).
+  // The DB stores only the SHA-256 hash; the raw key exists nowhere else, so it must be
+  // persisted to e2e/.auth/api-key.json for the specs to read.
+  const rawKey = "sml_" + randomBytes(32).toString("hex"); // matches lib/api-key-actions.ts:21
+  const keyHash = createHash("sha256").update(rawKey).digest("hex"); // matches lib/api-auth.ts:19
+  const keyId = randomUUID();
+  await client.execute({
+    sql: `INSERT INTO "ApiKey" (id, keyHash, name, userId, createdAt)
+          VALUES (?, ?, ?, ?, datetime('now'))`,
+    args: [keyId, keyHash, "e2e-api-key", id],
+  });
+
   mkdirSync(path.join(process.cwd(), "e2e/.auth"), { recursive: true });
   writeFileSync(
     path.join(process.cwd(), "e2e/.auth/test-user.json"),
     JSON.stringify({ email, id })
+  );
+  writeFileSync(
+    path.join(process.cwd(), "e2e/.auth/api-key.json"),
+    JSON.stringify({ rawKey, keyId, userId: id })
   );
 
   (globalThis as any).__DB_CONTAINER__ = container;
