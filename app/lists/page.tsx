@@ -36,11 +36,7 @@ export default async function ListsPage({
 
         <Link
           href="/lists/new"
-          className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors"
-          style={{
-            background: "var(--brand-500)",
-            color: "white",
-          }}
+          className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl text-white transition-colors bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
         >
           <span className="text-xl leading-none">+</span>
           Nueva lista

@@ -21,8 +21,7 @@ export default function HeroSection() {
         </p>
         <Link
           href="/signup"
-          className="inline-block font-bold px-8 py-4 rounded-xl shadow-md transition-colors text-lg"
-          style={{ background: "var(--brand-500)", color: "white" }}
+          className="inline-block font-bold px-8 py-4 rounded-xl shadow-md transition-colors text-lg text-white bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
         >
           Empezar gratis
         </Link>

@@ -21,7 +21,7 @@ function RestApiCard() {
       <ul className="mt-4 space-y-1 text-xs" style={{ color: "oklch(50% 0.01 85)" }}>
         <li>• CRUD de listas y productos</li>
         <li>• Comparación de precios en tiempo real</li>
-        <li>• OAS 3.1: <a href="/docs" className="underline underline-offset-2 hover:text-white" style={{ color: "oklch(70% 0.01 85)" }}>Explorador interactivo →</a> · <a href="/openapi.yaml" className="underline underline-offset-2 hover:text-white" style={{ color: "oklch(50% 0.01 85)" }}>openapi.yaml</a></li>
+        <li>• OAS 3.1: <a href="/docs" className="underline underline-offset-2 text-[oklch(70%_0.01_85)] hover:text-white" >Explorador interactivo →</a> · <a href="/openapi.yaml" className="underline underline-offset-2 text-[oklch(50%_0.01_85)] hover:text-white" >openapi.yaml</a></li>
       </ul>
     </div>
   );

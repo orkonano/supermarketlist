@@ -61,12 +61,10 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className="w-full py-2.5 px-4 rounded-lg font-semibold transition-colors"
-      style={{
-        background: pending ? "var(--brand-400)" : "var(--brand-500)",
-        color: "white",
-        opacity: pending ? 0.7 : 1,
-      }}
+      className={`w-full py-2.5 px-4 rounded-lg font-semibold text-white transition-colors ${
+        pending ? "bg-[var(--brand-400)]" : "bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+      }`}
+      style={{ opacity: pending ? 0.7 : 1 }}
     >
       {pending ? pendingLabel : idleLabel}
     </button>
