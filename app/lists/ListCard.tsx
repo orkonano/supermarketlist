@@ -16,7 +16,7 @@ function ListCardActions({ listId, isOwner }: { listId: string; isOwner: boolean
     <div className="flex items-center gap-1">
       <Link
         href={`/lists/${listId}/share`}
-        className="text-xs px-2 py-1.5 rounded-md transition-colors"
+        className="text-xs px-2 py-1.5 rounded-md transition-colors hover:bg-[var(--surface-muted)]"
         style={{ color: SECONDARY }}
       >
         Compartir
@@ -25,7 +25,7 @@ function ListCardActions({ listId, isOwner }: { listId: string; isOwner: boolean
         <>
           <Link
             href={`/lists/${listId}?edit=1`}
-            className="text-xs px-2 py-1.5 rounded-md transition-colors"
+            className="text-xs px-2 py-1.5 rounded-md transition-colors hover:bg-[var(--surface-muted)]"
             style={{ color: SECONDARY }}
           >
             Renombrar
@@ -33,8 +33,7 @@ function ListCardActions({ listId, isOwner }: { listId: string; isOwner: boolean
           <form action={deleteList.bind(null, listId)}>
             <button
               type="submit"
-              className="text-xs px-2 py-1.5 rounded-md transition-colors"
-              style={{ color: "var(--text-muted)" }}
+              className="text-xs px-2 py-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:bg-[var(--destructive-50)] hover:text-[var(--destructive-500)]"
             >
               Eliminar
             </button>

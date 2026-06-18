@@ -51,12 +51,10 @@ export default function ShareForm({ listId }: { listId: string }) {
         <button
           type="submit"
           disabled={isPending}
-          className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          style={{
-            background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-            color: "white",
-            opacity: isPending ? 0.7 : 1,
-          }}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${
+            isPending ? "bg-[var(--brand-400)]" : "bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+          }`}
+          style={{ opacity: isPending ? 0.7 : 1 }}
         >
           {isPending ? "Enviando…" : "Invitar"}
         </button>

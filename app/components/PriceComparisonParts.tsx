@@ -75,12 +75,14 @@ export function PriceComparisonHeader({
         <button
           onClick={onRefresh}
           disabled={loading}
-          className="text-xs transition-colors disabled:opacity-40"
-          style={{ color: "var(--brand-500)" }}
+          className="text-xs transition-colors disabled:opacity-40 text-[var(--brand-500)] hover:text-[var(--brand-600)]"
         >
           {loading ? "Actualizando..." : "Actualizar"}
         </button>
-        <button onClick={onClose} className="text-xs transition-colors" style={{ color: MUTED }}>
+        <button
+          onClick={onClose}
+          className="text-xs transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
           Cerrar
         </button>
       </div>
