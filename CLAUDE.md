@@ -192,6 +192,18 @@ When existing tests fail after a change, determine the cause before touching any
 
 Never delete or skip a failing test to make CI green without understanding why it failed.
 
+## Testing & Verification
+
+**CSS/visual changes (hover states, styling) cannot be verified by tsc/lint/tests** — they
+never evaluate `:hover`, focus, or rendered appearance. Confirm visually (or ask the user to
+confirm) before claiming a styling fix is complete, and enumerate every affected page rather
+than trusting a green test run.
+
+**TypeScript type errors can pass Vitest but still fail Vercel's `tsc` build.** Vitest runs
+code without type-checking it, so errors like `string | undefined` passed to
+`encodeURIComponent` slip past green tests. Always run `npx tsc --noEmit` before considering
+a TypeScript change complete.
+
 ## next/dynamic with ssr: false in Server Components
 
 `ssr: false` is forbidden inside a Server Component — Next.js throws a hard compile error. When a Server Component needs to lazy-load a client-heavy component without SSR, extract the `dynamic(...)` call into a thin `"use client"` wrapper:
