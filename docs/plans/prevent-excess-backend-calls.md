@@ -1,6 +1,6 @@
 # Plan: prevent excess / duplicate backend calls
 
-**Status:** Layers 1 & 2 implemented (see below). Layers 3a and 3b are future work, detailed here.
+**Status:** All layers implemented (PR #42 — Layers 1 & 2; PR #48 — Layers 3a & 3b).
 
 ## Background
 
@@ -19,8 +19,8 @@ Fixed in `fix/price-comparison-refetch-loop` by keying `itemNames` on the serial
 |---|---|---|
 | 1 | Component unit test asserting exact call count (Vitest + RTL + happy-dom) | ✅ Done — `app/components/__tests__/PriceComparison.test.tsx` |
 | 2 | E2E request-count guard (Playwright) | ✅ Done — `e2e/price-comparison.spec.ts` |
-| 3a | Enable the React Compiler (eliminate the unstable-identity class) | ⬜ Future — this doc |
-| 3b | Model price reads as a route handler + SWR (remove revalidation, dedupe) | ⬜ Future — this doc |
+| 3a | Enable the React Compiler (eliminate the unstable-identity class) | ✅ Done — `next.config.ts` + `eslint.config.mjs` (PR #48) |
+| 3b | Model price reads as a route handler + SWR (remove revalidation, dedupe) | ✅ Done — `app/api/lists/[listId]/prices/route.ts` + `PriceComparison.tsx` (PR #48) |
 
 Layers 1 and 2 *detect* the bug from both ends (mechanism + network symptom). Layers 3a and 3b
 *eliminate* the underlying class so the bug largely cannot recur.
