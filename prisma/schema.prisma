@@ -56,6 +56,7 @@ model ListMember {
   joinedAt DateTime @default(now())
 
   @@id([listId, userId])
+  @@index([userId])
 }
 
 model ListInvite {
@@ -71,6 +72,7 @@ model ListInvite {
   createdAt   DateTime @default(now())
 
   @@index([email])
+  @@index([listId])
 }
 
 model Item {
