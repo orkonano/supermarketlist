@@ -41,6 +41,24 @@ const VTEX_HOSTS: Record<"disco" | "carrefour", string> = {
   carrefour: "https://www.carrefour.com.ar",
 };
 
+const COTO_ATTRS = {
+  PRICE:        "sku.activePrice",
+  DISPLAY_NAME: "product.displayName",
+  BRAND:        "product.MARCA",
+  IMAGE_URL:    "product.mediumImage.url",
+} as const;
+
+// Strips weight/volume/percentage suffixes that corrupt API relevance ranking.
+// "manteca 500gr" → "manteca"; "leche larga vida 3% 1l" → "leche larga vida"
+export function stripQueryNoise(query: string): string {
+  const stripped = query
+    .replace(/\b\d+([.,]\d+)?\s*(g|gr|kg|ml|l|lt)\b/gi, "")
+    .replace(/\d+%/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return stripped || query.trim();
+}
+
 function isValidPrice(price: number | null | undefined): price is number {
   return price != null && !isNaN(price) && price > 0;
 }
@@ -67,13 +85,15 @@ type CotoResultList = NonNullable<
 >[0];
 
 function extractCotoResultList(data: unknown): CotoResultList | undefined {
+  // MainContent[1] is stable: [0] is SearchAdjustments, [1] is ContentSlot-Main (verified live)
   return (data as CotoEndecaResponse)?.contents?.[0]?.MainContent?.[1]?.contents?.[0];
 }
 
-function getCotoSkuAttrs(data: unknown): Record<string, string[]> | null {
+function getAllCotoAttrs(data: unknown): Array<Record<string, string[]>> {
   const resultList = extractCotoResultList(data);
-  const skuRecord = resultList?.records?.[0]?.records?.[0];
-  return skuRecord?.attributes ?? null;
+  return (resultList?.records ?? [])
+    .map(r => r.records?.[0]?.attributes)
+    .filter((a): a is Record<string, string[]> => a != null);
 }
 
 function buildCotoResult(attrs: Record<string, string[]>, price: number | null, query: string): PriceResult {
@@ -88,52 +108,90 @@ function buildCotoResult(attrs: Record<string, string[]>, price: number | null, 
   };
 }
 
-const COTO_ATTRS = {
-  PRICE:        "sku.activePrice",
-  DISPLAY_NAME: "product.displayName",
-  BRAND:        "product.MARCA",
-  IMAGE_URL:    "product.mediumImage.url",
-} as const;
+function scoreWords(name: string, words: string[]): number {
+  const lower = name.toLowerCase();
+  return words.reduce((acc, w) => {
+    if (!lower.includes(w)) return acc;
+    // Products whose name starts with the query word rank above ones that merely contain it
+    return acc + (lower.startsWith(w) ? 2 : 1);
+  }, 0);
+}
+
+function parseQueryWords(query: string): string[] {
+  return query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+}
+
+function findBestVtexProduct(products: VtexProduct[], query: string): VtexProduct | null {
+  if (!products.length) return null;
+  const words = parseQueryWords(query);
+  if (!words.length) return products[0] ?? null;
+
+  const scored = products.map(p => ({ p, score: scoreWords(p.productName ?? "", words) }));
+  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
+  return best.score > 0 ? best.p : products[0] ?? null;
+}
+
+function findBestCotoAttrs(allAttrs: Array<Record<string, string[]>>, query: string): Record<string, string[]> | null {
+  if (!allAttrs.length) return null;
+  const words = parseQueryWords(query);
+  if (!words.length) return allAttrs[0] ?? null;
+
+  const scored = allAttrs.map(attrs => ({
+    attrs,
+    score: scoreWords(attrs[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? "", words),
+  }));
+  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
+  return best.score > 0 ? best.attrs : allAttrs[0] ?? null;
+}
 
 export async function vtexAdapter(
   store: "disco" | "carrefour",
   query: string
 ): Promise<PriceResult> {
   const base = VTEX_HOSTS[store];
-  const url = `${base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(query)}&_from=0&_to=0`;
+  const url = `${base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(query)}&_from=0&_to=9`;
 
   try {
-    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return empty(store);
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!res.ok) {
+      console.warn(`[price] ${store} responded ${res.status} for "${query}"`);
+      return empty(store);
+    }
 
     const data: unknown = await res.json();
-    const product = Array.isArray(data) ? (data[0] as VtexProduct) : null;
+    if (!Array.isArray(data)) return empty(store);
+    const product = findBestVtexProduct(data as VtexProduct[], query);
     if (!product) return empty(store);
 
     const rawPrice = getVtexRawPrice(product);
     const price = isValidPrice(rawPrice) ? rawPrice : null;
     return buildVtexResult(store, product, price);
-  } catch {
+  } catch (err) {
+    console.warn(`[price] ${store} fetch failed for "${query}":`, err);
     return empty(store);
   }
 }
 
 export async function cotoAdapter(query: string): Promise<PriceResult> {
-  const url = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}&Nrpp=1&view=json&format=json`;
+  const url = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}&Nrpp=10&view=json&format=json`;
 
   try {
-    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return empty("coto");
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!res.ok) {
+      console.warn(`[price] coto responded ${res.status} for "${query}"`);
+      return empty("coto");
+    }
 
     const data: unknown = await res.json();
-    const attrs = getCotoSkuAttrs(data);
+    const attrs = findBestCotoAttrs(getAllCotoAttrs(data), query);
     if (!attrs) return empty("coto");
 
     const priceStr = attrs[COTO_ATTRS.PRICE]?.[0];
     const rawPrice = priceStr ? parseFloat(priceStr) : null;
     const price = isValidPrice(rawPrice) ? rawPrice : null;
     return buildCotoResult(attrs, price, query);
-  } catch {
+  } catch (err) {
+    console.warn(`[price] coto fetch failed for "${query}":`, err);
     return empty("coto");
   }
 }
