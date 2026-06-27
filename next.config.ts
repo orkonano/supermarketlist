@@ -2,6 +2,7 @@ import { withWorkflow } from "workflow/next";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactCompiler: true,
   serverExternalPackages: [
     "@napi-rs/keyring",
     "@vercel/oidc",

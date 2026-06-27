@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import sonarjs from "eslint-plugin-sonarjs";
+import reactCompiler from "eslint-plugin-react-compiler";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -38,6 +39,11 @@ const eslintConfig = defineConfig([
       // (e.g. `const { members: _members, ...rest } = list` to omit a key)
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
+  },
+  // React Compiler — flags components that violate the Rules of React (compiler bails on them)
+  {
+    plugins: { "react-compiler": reactCompiler },
+    rules: { "react-compiler/react-compiler": "error" },
   },
   // Relax rules for test files — fixture strings and long describe blocks are expected
   {

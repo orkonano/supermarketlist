@@ -23,15 +23,25 @@
           },
           {
             "type": "command",
-            "command": "npm --prefix \"$CLAUDE_PROJECT_DIR\" run lint 2>&1 | grep -E 'warning|error|problems' | tail -20",
-            "timeout": 30,
-            "statusMessage": "Revisando clean code..."
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx eslint . --max-warnings=0",
+            "timeout": 60,
+            "statusMessage": "Revisando ESLint (max-warnings=0)..."
           },
           {
             "type": "command",
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx prisma generate >/dev/null 2>&1 && npx tsc --noEmit",
             "timeout": 120,
             "statusMessage": "Verificando tipos (tsc)..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f /tmp/supermarket-e2e-needed ] && (set -a; source \"$CLAUDE_PROJECT_DIR/.env.e2e\" 2>/dev/null; set +a; cd \"$CLAUDE_PROJECT_DIR\" && npx playwright test --project=chromium e2e/price-comparison.spec.ts) || true",
+            "timeout": 180,
+            "statusMessage": "Verificando visual (price-comparison.spec.ts)..."
           }
         ]
       },
