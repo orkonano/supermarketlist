@@ -21,20 +21,18 @@ function RenameListActions({ isPending, onCancel }: { isPending: boolean; onCanc
       <button
         type="button"
         onClick={onCancel}
-        className="px-3 py-2 rounded-lg text-sm transition-colors"
-        style={{ border: "1px solid var(--border)", color: "var(--text-secondary)", background: "transparent" }}
+        className="px-3 py-2 rounded-lg text-sm transition-colors hover:bg-[var(--surface-muted)]"
+        style={{ border: "1px solid var(--border)", color: "var(--text-secondary)" }}
       >
         Cancelar
       </button>
       <button
         type="submit"
         disabled={isPending}
-        className="px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-        style={{
-          background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-          color: "white",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className={`px-3 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${
+          isPending ? "bg-[var(--brand-400)]" : "bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+        }`}
+        style={{ opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? "Guardando…" : "Guardar"}
       </button>

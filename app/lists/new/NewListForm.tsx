@@ -13,12 +13,11 @@ function NewListActions({ isPending, onCancel }: { isPending: boolean; onCancel:
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 py-2.5 px-4 text-sm font-medium transition-colors"
+        className="flex-1 py-2.5 px-4 text-sm font-medium transition-colors bg-[var(--surface-raised)] hover:bg-[var(--surface-muted)]"
         style={{
           borderRadius: RADIUS_MD,
           border: "1px solid var(--border)",
           color: "var(--text-secondary)",
-          background: "var(--surface-raised)",
         }}
       >
         Cancelar
@@ -26,12 +25,10 @@ function NewListActions({ isPending, onCancel }: { isPending: boolean; onCancel:
       <button
         type="submit"
         disabled={isPending}
-        className="flex-1 py-2.5 px-4 text-sm font-semibold text-white transition-all"
-        style={{
-          borderRadius: RADIUS_MD,
-          background: isPending ? "var(--brand-400)" : "var(--brand-500)",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className={`flex-1 py-2.5 px-4 text-sm font-semibold text-white transition-all ${
+          isPending ? "bg-[var(--brand-400)]" : "bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+        }`}
+        style={{ borderRadius: RADIUS_MD, opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? "Creando…" : "Crear lista"}
       </button>

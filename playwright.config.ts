@@ -29,11 +29,18 @@ export default defineConfig({
     },
     {
       name: "chromium",
+      testIgnore: /api\/.*\.spec\.ts/, // API/MCP specs run headless under the `api` project
       use: {
         ...devices["Desktop Chrome"],
         storageState: "e2e/.auth/user.json",
       },
       dependencies: ["setup"],
+    },
+    {
+      // REST + MCP integration suite. API-key auth is independent of the session-cookie
+      // flow, so this project needs no browser, no storageState, and no `setup` dependency.
+      name: "api",
+      testMatch: /api\/.*\.spec\.ts/, // e2e/api/*.spec.ts
     },
   ],
 });

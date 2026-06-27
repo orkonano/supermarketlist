@@ -40,7 +40,7 @@ export default function MonthNav({ month, year, listId, checked, total }: Props)
     <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm p-4">
       <button
         onClick={prevMonth}
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+        className="p-2 rounded-full transition-colors text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
         aria-label="Mes anterior"
       >
         &#8592;
@@ -57,7 +57,7 @@ export default function MonthNav({ month, year, listId, checked, total }: Props)
       </div>
       <button
         onClick={nextMonth}
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+        className="p-2 rounded-full transition-colors text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
         aria-label="Mes siguiente"
       >
         &#8594;

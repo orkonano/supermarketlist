@@ -13,7 +13,10 @@ export default function ListPageHeader({
 }) {
   return (
     <div className="flex items-center gap-3 mb-8">
-      <Link href="/lists" className="text-sm transition-colors" style={{ color: MUTED }}>
+      <Link
+        href="/lists"
+        className="text-sm transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+      >
         ← Listas
       </Link>
       <span style={{ color: "var(--border-strong)" }}>/</span>
@@ -23,7 +26,7 @@ export default function ListPageHeader({
       <div className="ml-auto flex items-center gap-1">
         <Link
           href={`/lists/${listId}/share`}
-          className="text-xs px-2 py-1 rounded-md transition-colors"
+          className="text-xs px-2 py-1 rounded-md transition-colors hover:bg-[var(--brand-50)]"
           style={{ color: "var(--brand-500)" }}
         >
           Compartir
@@ -31,7 +34,7 @@ export default function ListPageHeader({
         {isOwner && (
           <Link
             href={`/lists/${listId}?edit=1`}
-            className="text-xs px-2 py-1 rounded-md transition-colors"
+            className="text-xs px-2 py-1 rounded-md transition-colors hover:bg-[var(--surface-muted)]"
             style={{ color: MUTED }}
           >
             Renombrar

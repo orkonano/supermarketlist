@@ -21,8 +21,7 @@ export default function LandingPage() {
 
       <Link
         href="/login"
-        className="fixed bottom-6 right-6 font-semibold px-5 py-3 rounded-full shadow-lg transition-colors text-sm z-50"
-        style={{ background: "var(--brand-500)", color: "white" }}
+        className="fixed bottom-6 right-6 font-semibold px-5 py-3 rounded-full shadow-lg transition-colors text-sm z-50 text-white bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
       >
         Iniciá sesión →
       </Link>

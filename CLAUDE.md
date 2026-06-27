@@ -192,6 +192,18 @@ When existing tests fail after a change, determine the cause before touching any
 
 Never delete or skip a failing test to make CI green without understanding why it failed.
 
+## Testing & Verification
+
+**CSS/visual changes (hover states, styling) cannot be verified by tsc/lint/tests** — they
+never evaluate `:hover`, focus, or rendered appearance. Confirm visually (or ask the user to
+confirm) before claiming a styling fix is complete, and enumerate every affected page rather
+than trusting a green test run.
+
+**TypeScript type errors can pass Vitest but still fail Vercel's `tsc` build.** Vitest runs
+code without type-checking it, so errors like `string | undefined` passed to
+`encodeURIComponent` slip past green tests. Always run `npx tsc --noEmit` before considering
+a TypeScript change complete.
+
 ## next/dynamic with ssr: false in Server Components
 
 `ssr: false` is forbidden inside a Server Component — Next.js throws a hard compile error. When a Server Component needs to lazy-load a client-heavy component without SSR, extract the `dynamic(...)` call into a thin `"use client"` wrapper:
@@ -216,3 +228,21 @@ redirect(`/lists?error=${encodeURIComponent(message)}`);
 ```
 
 The `/lists` page already reads `searchParams.error` and renders a red banner — no additional UI work is needed. Check the destination page first; if it does not handle `params.error`, add the banner there too.
+
+## Team `.claude/` conventions
+
+`.claude/` is gitignored by default; `.gitignore` then **un-ignores** the files the team shares. Keep that split intact:
+
+| Path | Shared? | Notes |
+|---|---|---|
+| `.claude/settings.json` | ✅ committed | Team hooks (test / lint / tsc / e2e). |
+| `.claude/launch.json` | ✅ committed | Dev launch profile (`npm run dev`). |
+| `.claude/agents/*.md` | ✅ committed | Project subagents (e.g. `browser-tester`). |
+| `.claude/skills/*` | ✅ committed | **Symlinks** → `../../.agents/skills/<name>`; the real content lives in the tracked `.agents/skills/`. |
+| `.claude/settings.local.json` | 🚫 local | Personal permission allowlist. |
+| `.claude/worktrees/` | 🚫 local | Local git worktrees. |
+
+Rules:
+- **Hook commands must be machine-independent.** Use `"$CLAUDE_PROJECT_DIR"` (the env var Claude Code injects into hooks), never a hardcoded `/Users/...` path — otherwise hooks break on every other machine.
+- **New shared skills are symlinks.** Add the skill under `.agents/skills/<name>/`, symlink it from `.claude/skills/<name>`, then force-track the link: `git add -f .claude/skills/<name>` (the `-f` is needed because `.claude/` is gitignored; the link stores as mode `120000`). A fresh clone restores the symlink and its target together — no per-machine setup.
+- **New shared agents/files** under `.claude/` need a matching `!`-negation in `.gitignore` (or `git add -f`), since the directory is ignored by default.

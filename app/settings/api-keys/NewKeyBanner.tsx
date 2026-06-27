@@ -20,8 +20,7 @@ export default function NewKeyBanner({ createdKey }: { createdKey: string }) {
           href={`/docs?token=${encodeURIComponent(createdKey)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-medium underline underline-offset-2 transition-colors"
-          style={{ color: "var(--brand-500)" }}
+          className="text-xs font-medium underline underline-offset-2 transition-colors text-[var(--brand-500)] hover:text-[var(--brand-600)]"
         >
           Probar en el explorador →
         </a>

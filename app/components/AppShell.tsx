@@ -16,7 +16,7 @@ function AppShellNav({ userName }: { userName: string }) {
       </span>
       <Link
         href="/settings/api-keys"
-        className="text-xs px-2 py-1.5 rounded-md transition-colors"
+        className="text-xs px-2 py-1.5 rounded-md transition-colors hover:bg-[var(--surface-muted)]"
         style={{ color: "var(--text-secondary)" }}
       >
         API Keys
@@ -24,8 +24,7 @@ function AppShellNav({ userName }: { userName: string }) {
       <form action={logout} className="inline">
         <button
           type="submit"
-          className="text-xs px-2 py-1.5 rounded-md transition-colors"
-          style={{ color: MUTED }}
+          className="text-xs px-2 py-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
         >
           Cerrar sesión
         </button>
@@ -48,7 +47,7 @@ export default function AppShell({ userName, children }: Props) {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             href="/lists"
-            className="text-xl font-bold tracking-tight"
+            className="text-xl font-bold tracking-tight transition-opacity hover:opacity-80"
             style={{
               fontFamily: "var(--font-display)",
               color: "var(--brand-600)",

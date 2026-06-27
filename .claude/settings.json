@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | grep -qE '/app/' && touch /tmp/supermarket-e2e-needed || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm --prefix \"$CLAUDE_PROJECT_DIR\" test",
+            "timeout": 60,
+            "statusMessage": "Corriendo tests..."
+          },
+          {
+            "type": "command",
+            "command": "npm --prefix \"$CLAUDE_PROJECT_DIR\" run lint 2>&1 | grep -E 'warning|error|problems' | tail -20",
+            "timeout": 30,
+            "statusMessage": "Revisando clean code..."
+          },
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx prisma generate >/dev/null 2>&1 && npx tsc --noEmit",
+            "timeout": 120,
+            "statusMessage": "Verificando tipos (tsc)..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f /tmp/supermarket-e2e-needed ] && rm -f /tmp/supermarket-e2e-needed && (set -a; source \"$CLAUDE_PROJECT_DIR/.env.e2e\" 2>/dev/null; set +a; npm --prefix \"$CLAUDE_PROJECT_DIR\" run test:e2e) || true",
+            "timeout": 180,
+            "statusMessage": "Corriendo tests E2E (app/ fue modificado)..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true
+  }
+}

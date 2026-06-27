@@ -1,0 +1,39 @@
+name: API + MCP Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # must match local npm 11 — see CLAUDE.md "CI"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # No `playwright install` step — the `api` project runs no browser.
+      - name: Run API + MCP tests
+        run: npm run test:api
+        env:
+          CI: true
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          # Do NOT set TURSO_AUTH_TOKEN — global-setup deletes it (e2e/global-setup.ts).
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-playwright-report
+          path: playwright-report/
+          retention-days: 7

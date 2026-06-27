@@ -34,8 +34,8 @@ export default function CreateApiKeyForm() {
         />
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-semibold text-white transition-colors flex-shrink-0"
-          style={{ borderRadius: RADIUS_MD, background: "var(--brand-500)" }}
+          className="px-4 py-2 text-sm font-semibold text-white transition-colors flex-shrink-0 bg-[var(--brand-500)] hover:bg-[var(--brand-600)]"
+          style={{ borderRadius: RADIUS_MD }}
         >
           Crear
         </button>

@@ -50,8 +50,18 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
-# Claude Code memory
-.claude/
+# Claude Code: ignore everything under .claude/ by default...
+.claude/*
+# ...but DO share team config & definitions:
+!.claude/settings.json
+!.claude/launch.json
+!.claude/agents/
+!.claude/skills/
+# personal / local-only state — never share:
+.claude/settings.local.json
+.claude/worktrees/
+# orphan file: the real hardcoded-credential-finder skill is the symlink in this dir
+.claude/skills/SKILL.md
 
 # playwright
 /e2e/.auth/
