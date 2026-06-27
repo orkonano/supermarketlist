@@ -2,13 +2,15 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import { SWRConfig } from "swr";
 import type { Item } from "@/app/generated/prisma/client";
 
-// Mock the Server Action so we can count exactly how many times the component calls it.
-const { getItemPrices } = vi.hoisted(() => ({ getItemPrices: vi.fn() }));
-vi.mock("@/lib/price-actions", () => ({ getItemPrices }));
-
 import PriceComparison from "../PriceComparison";
+
+// Isolate SWR cache per test so stale cache from one test doesn't affect the next.
+const isolated = ({ children }: { children: React.ReactNode }) => (
+  <SWRConfig value={{ provider: () => new Map() }}>{children}</SWRConfig>
+);
 
 // A fresh array of fresh objects every call — mirrors what the Server Component hands
 // down on each render (Prisma returns new instances), with the SAME item names.
@@ -16,16 +18,22 @@ function makeItems(): Item[] {
   return [{ id: "1", name: "Leche", quantity: null, checked: false }] as unknown as Item[];
 }
 
+const mockFetch = vi.fn();
+
 beforeEach(() => {
-  getItemPrices.mockReset();
-  getItemPrices.mockResolvedValue({});
+  mockFetch.mockReset();
+  mockFetch.mockResolvedValue({ json: async () => ({}) });
+  vi.stubGlobal("fetch", mockFetch);
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 test("fetches prices once when items is a new array reference but the names are unchanged", async () => {
-  const { rerender } = render(<PriceComparison listId="L1" items={makeItems()} />);
-  await waitFor(() => expect(getItemPrices).toHaveBeenCalledTimes(1));
+  const { rerender } = render(<PriceComparison listId="L1" items={makeItems()} />, { wrapper: isolated });
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
   // Simulate the route revalidation a Server Action triggers: the parent re-renders and
   // passes a brand-new `items` array (new object identities) whose names are identical.
@@ -34,15 +42,15 @@ test("fetches prices once when items is a new array reference but the names are 
     await new Promise((r) => setTimeout(r, 50));
   });
 
-  // Regression guard: before the fix the unstable `itemNames` identity re-fired the effect,
-  // turning this into an infinite fetch -> revalidate -> refetch loop (>= 2 here).
-  expect(getItemPrices).toHaveBeenCalledTimes(1);
+  // Regression guard: the URL key stays stable when names don't change, so SWR does not
+  // re-fetch. Before the fix the unstable identity caused an infinite loop.
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
 test("clicking Actualizar triggers exactly one additional fetch", async () => {
-  render(<PriceComparison listId="L1" items={makeItems()} />);
-  await waitFor(() => expect(getItemPrices).toHaveBeenCalledTimes(1));
+  render(<PriceComparison listId="L1" items={makeItems()} />, { wrapper: isolated });
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
   fireEvent.click(screen.getByRole("button", { name: "Actualizar" }));
-  await waitFor(() => expect(getItemPrices).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 });

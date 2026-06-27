@@ -26,15 +26,20 @@ test("clicking Actualizar issues a bounded number of list-route requests", async
   await expect(refresh).toBeEnabled({ timeout: 30_000 });
 
   // Count only the requests caused by the click below.
+  let priceGets = 0;
   let listPosts = 0;
   page.on("request", (req) => {
+    if (req.method() === "GET" && req.url().includes("/api/lists/") && req.url().includes("/prices")) {
+      priceGets++;
+    }
     if (req.method() === "POST" && req.url().startsWith(listUrl)) listPosts++;
   });
 
   await refresh.click();
   await page.waitForTimeout(2_000);
 
-  // A single Server Action POST is expected. Before the fix, the fetch -> revalidate ->
-  // refetch loop fired many requests against the list route.
-  expect(listPosts).toBeLessThanOrEqual(1);
+  // One GET to /api/lists/<id>/prices per click — SWR dedupes concurrent calls.
+  expect(priceGets).toBeLessThanOrEqual(1);
+  // No Server Action POSTs to the list route — proves revalidation is gone.
+  expect(listPosts).toBe(0);
 });
