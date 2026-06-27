@@ -4,6 +4,7 @@ import {
   cotoAdapter,
   empty,
   stripQueryNoise,
+  parseSizeTokens,
   SUPERMARKETS,
   type PriceResult,
   type Supermarket,
@@ -12,6 +13,21 @@ import { ensureMember } from "./list-service";
 import { PRICE_CACHE_TTL_MS } from "./constants/time";
 
 export type ItemPrices = Record<string, PriceResult[]>;
+
+type QueryPlan = {
+  cacheKey: string;       // original lowercased name — stored in DB and used for lookup
+  searchQuery: string;    // noise-stripped — sent to supermarket APIs
+  sizePatterns: RegExp[]; // flexible size match patterns for scoring
+};
+
+function buildQueryPlan(itemName: string): QueryPlan {
+  const cacheKey = itemName.toLowerCase().trim();
+  return {
+    cacheKey,
+    searchQuery: stripQueryNoise(cacheKey),
+    sizePatterns: parseSizeTokens(cacheKey),
+  };
+}
 
 function cacheKey(query: string, supermarket: string): string {
   return JSON.stringify([query, supermarket]);
@@ -70,40 +86,40 @@ async function loadAllFromCache(queries: string[]): Promise<{
 }
 
 async function fetchAndCache(
-  query: string,
+  plan: QueryPlan,
   supermarket: Supermarket,
   fresh: Map<string, PriceResult>
 ): Promise<void> {
   const r = supermarket === "coto"
-    ? await cotoAdapter(query)
-    : await vtexAdapter(supermarket, query);
-  fresh.set(cacheKey(query, supermarket), r);
+    ? await cotoAdapter(plan.searchQuery, plan.sizePatterns)
+    : await vtexAdapter(supermarket, plan.searchQuery, plan.sizePatterns);
+  fresh.set(cacheKey(plan.cacheKey, supermarket), r);
 }
 
 async function fetchAndCacheMissing(
-  queries: string[],
+  plans: QueryPlan[],
   fresh: Map<string, PriceResult>,
   staleKeys: Set<string> = new Set()
 ): Promise<void> {
-  const missing: { query: string; supermarket: Supermarket }[] = [];
-  for (const query of queries) {
+  const missing: { plan: QueryPlan; supermarket: Supermarket }[] = [];
+  for (const plan of plans) {
     for (const { key: supermarket } of SUPERMARKETS) {
-      const key = cacheKey(query, supermarket);
+      const key = cacheKey(plan.cacheKey, supermarket);
       if (!fresh.has(key) || staleKeys.has(key)) {
-        missing.push({ query, supermarket });
+        missing.push({ plan, supermarket });
       }
     }
   }
   if (missing.length === 0) return;
 
-  await Promise.all(missing.map(({ query, supermarket }) => fetchAndCache(query, supermarket, fresh)));
+  await Promise.all(missing.map(({ plan, supermarket }) => fetchAndCache(plan, supermarket, fresh)));
 
   await prisma.$transaction(
-    missing.map(({ query, supermarket }) => {
-      const r = fresh.get(cacheKey(query, supermarket))!;
+    missing.map(({ plan, supermarket }) => {
+      const r = fresh.get(cacheKey(plan.cacheKey, supermarket))!;
       return prisma.priceCache.upsert({
-        where: { query_supermarket: { query, supermarket } },
-        create: { query, supermarket, ...priceResultToRecord(r) },
+        where: { query_supermarket: { query: plan.cacheKey, supermarket } },
+        create: { query: plan.cacheKey, supermarket, ...priceResultToRecord(r) },
         update: { ...priceResultToRecord(r), fetchedAt: new Date() },
       });
     })
@@ -113,8 +129,8 @@ async function fetchAndCacheMissing(
 function buildResult(itemNames: string[], fresh: Map<string, PriceResult>): ItemPrices {
   const result: ItemPrices = {};
   for (const name of itemNames) {
-    const query = stripQueryNoise(name.toLowerCase().trim());
-    result[name] = SUPERMARKETS.map(({ key }) => fresh.get(cacheKey(query, key)) ?? empty(key));
+    const key = name.toLowerCase().trim();
+    result[name] = SUPERMARKETS.map(({ key: s }) => fresh.get(cacheKey(key, s)) ?? empty(s));
   }
   return result;
 }
@@ -125,19 +141,23 @@ export async function serviceGetItemPrices(
   itemNames: string[]
 ): Promise<ItemPrices> {
   await ensureMember(listId, userId);
-  const queries = [...new Set(itemNames.map((n) => stripQueryNoise(n.toLowerCase().trim())))];
-  const { all, staleKeys } = await loadAllFromCache(queries);
 
-  const missingKeys = queries.flatMap((q) =>
-    SUPERMARKETS.filter(({ key: s }) => !all.has(cacheKey(q, s))).map(({ key: s }) => ({ q, s }))
+  const planMap = new Map<string, QueryPlan>();
+  for (const name of itemNames) {
+    const plan = buildQueryPlan(name);
+    if (!planMap.has(plan.cacheKey)) planMap.set(plan.cacheKey, plan);
+  }
+  const plans = [...planMap.values()];
+  const { all, staleKeys } = await loadAllFromCache(plans.map(p => p.cacheKey));
+
+  const hasMissing = plans.some(plan =>
+    SUPERMARKETS.some(({ key: s }) => !all.has(cacheKey(plan.cacheKey, s)))
   );
 
-  if (missingKeys.length > 0) {
-    // Await missing entries — no cached data to show yet
-    await fetchAndCacheMissing(queries, all, new Set());
+  if (hasMissing) {
+    await fetchAndCacheMissing(plans, all, new Set());
   } else if (staleKeys.size > 0) {
-    // Return stale data immediately; refresh silently in background
-    void fetchAndCacheMissing(queries, all, staleKeys);
+    void fetchAndCacheMissing(plans, all, staleKeys);
   }
 
   return buildResult(itemNames, all);

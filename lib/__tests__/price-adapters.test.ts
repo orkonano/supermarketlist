@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { vtexAdapter, cotoAdapter, empty, formatARS, stripQueryNoise } from "../price-adapters";
+import { vtexAdapter, cotoAdapter, empty, formatARS, stripQueryNoise, parseSizeTokens } from "../price-adapters";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -457,5 +457,139 @@ describe("vtexAdapter relevance matching", () => {
     const result = await vtexAdapter("disco", "xyz_nonexistent");
 
     expect(result.productName).toBe("Leche La Serenísima 1L");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseSizeTokens
+// ---------------------------------------------------------------------------
+
+describe("parseSizeTokens", () => {
+  it("returns empty array for a query with no size tokens", () => {
+    expect(parseSizeTokens("manteca")).toHaveLength(0);
+    expect(parseSizeTokens("leche entera")).toHaveLength(0);
+  });
+
+  it("extracts gram patterns — matches all supermarket formats", () => {
+    const [pat] = parseSizeTokens("manteca 500gr");
+    expect(pat).toBeDefined();
+    expect(pat!.test("Manteca Tonadita 500g")).toBe(true);
+    expect(pat!.test("Manteca Tonadita 500 Gr")).toBe(true);
+    expect(pat!.test("Manteca Tonadita 500 Grs")).toBe(true);
+    expect(pat!.test("Manteca Tonadita 500 Grm")).toBe(true);
+    expect(pat!.test("Manteca Tonadita 200g")).toBe(false);
+  });
+
+  it("extracts liter patterns — matches all supermarket formats", () => {
+    const [pat] = parseSizeTokens("leche 1l");
+    expect(pat).toBeDefined();
+    expect(pat!.test("Leche La Serenísima 1L")).toBe(true);
+    expect(pat!.test("Leche La Serenísima 1lt")).toBe(true);
+    expect(pat!.test("Leche La Serenísima 1 Lt")).toBe(true);
+    expect(pat!.test("Leche La Serenísima 1 Lts")).toBe(true);
+    expect(pat!.test("Leche La Serenísima 2l")).toBe(false);
+  });
+
+  it("handles percentage in query and ignores it", () => {
+    const patterns = parseSizeTokens("leche larga vida 3% 1l");
+    expect(patterns).toHaveLength(1); // only 1l, not 3%
+    expect(patterns[0]!.test("Leche 1 Lt")).toBe(true);
+  });
+
+  it("extracts ml and kg patterns", () => {
+    const [mlPat] = parseSizeTokens("aceite 500ml");
+    expect(mlPat!.test("Aceite 500ml")).toBe(true);
+    expect(mlPat!.test("Aceite 500 ML")).toBe(true);
+    expect(mlPat!.test("Aceite 250ml")).toBe(false);
+
+    const [kgPat] = parseSizeTokens("harina 1kg");
+    expect(kgPat!.test("Harina 1kg")).toBe(true);
+    expect(kgPat!.test("Harina 1 KG")).toBe(true);
+    expect(kgPat!.test("Harina 2kg")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Size-aware scoring
+// ---------------------------------------------------------------------------
+
+describe("vtexAdapter — size-aware scoring", () => {
+  it("prefers the product whose name matches the requested size", async () => {
+    const products = [
+      {
+        productName: "Leche Entera 2L",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/leche-2l",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 3000 } }] }],
+      },
+      {
+        productName: "Leche Entera 1 Lt",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/leche-1l",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1890 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const sizePatterns = [/\b1\s*l(?:ts?)?\b/i];
+    const result = await vtexAdapter("disco", "leche", sizePatterns);
+
+    expect(result.productName).toBe("Leche Entera 1 Lt");
+    expect(result.price).toBe(1890);
+  });
+
+  it("degrades gracefully when no product matches the requested size", async () => {
+    const products = [
+      {
+        productName: "Manteca La Serenísima 200g",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/manteca-200g",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 2200 } }] }],
+      },
+      {
+        productName: "Manteca Tonadita 100g",
+        brand: "TONADITA",
+        link: "https://www.disco.com.ar/manteca-100g",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1500 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    // No 500g manteca exists — falls back to best noun match
+    const sizePatterns = [/\b500\s*g(?:r(?:[sm])?)?\b/i];
+    const result = await vtexAdapter("disco", "manteca", sizePatterns);
+
+    // Should return the best noun match (Manteca La Serenísima starts with "manteca")
+    expect(result.productName).toBe("Manteca La Serenísima 200g");
+  });
+});
+
+describe("cotoAdapter — size-aware scoring", () => {
+  it("prefers the product whose name matches the requested size", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(
+        cotoResponseMulti([
+          {
+            "product.displayName": ["Leche La Serenísima 2 Lts"],
+            "product.MARCA": ["LA SERENÍSIMA"],
+            "sku.activePrice": ["3200.000000"],
+            "product.mediumImage.url": ["https://img.jpg"],
+          },
+          {
+            "product.displayName": ["Leche La Serenísima 1 Lt"],
+            "product.MARCA": ["LA SERENÍSIMA"],
+            "sku.activePrice": ["1890.000000"],
+            "product.mediumImage.url": ["https://img.jpg"],
+          },
+        ])
+      )
+    );
+
+    const sizePatterns = [/\b1\s*l(?:ts?)?\b/i];
+    const result = await cotoAdapter("leche", sizePatterns);
+
+    expect(result.productName).toBe("Leche La Serenísima 1 Lt");
+    expect(result.price).toBe(1890);
   });
 });

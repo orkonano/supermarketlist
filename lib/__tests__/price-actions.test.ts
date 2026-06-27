@@ -172,9 +172,9 @@ describe("getItemPrices — cache misses", () => {
 
     await getItemPrices("list-1", ["leche"]);
 
-    expect(cotoAdapter).toHaveBeenCalledWith("leche");
-    expect(vtexAdapter).toHaveBeenCalledWith("disco", "leche");
-    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche");
+    expect(cotoAdapter).toHaveBeenCalledWith("leche", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("disco", "leche", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche", []);
   });
 
   it("batches all adapter results into a single $transaction", async () => {
@@ -221,7 +221,7 @@ describe("getItemPrices — cache misses", () => {
     // Only carrefour should be re-fetched
     expect(cotoAdapter).not.toHaveBeenCalled();
     expect(vtexAdapter).toHaveBeenCalledTimes(1);
-    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche");
+    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche", []);
   });
 
   it("returns empty result for a supermarket whose adapter returns null price", async () => {
@@ -260,11 +260,11 @@ describe("getItemPrices — multiple items", () => {
 
     await getItemPrices("list-1", ["leche", "pan"]);
 
-    expect(cotoAdapter).toHaveBeenCalledWith("leche");
-    expect(cotoAdapter).toHaveBeenCalledWith("pan");
-    expect(vtexAdapter).toHaveBeenCalledWith("disco", "leche");
-    expect(vtexAdapter).toHaveBeenCalledWith("disco", "pan");
-    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche");
-    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "pan");
+    expect(cotoAdapter).toHaveBeenCalledWith("leche", []);
+    expect(cotoAdapter).toHaveBeenCalledWith("pan", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("disco", "leche", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("disco", "pan", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "leche", []);
+    expect(vtexAdapter).toHaveBeenCalledWith("carrefour", "pan", []);
   });
 });
