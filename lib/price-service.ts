@@ -3,6 +3,7 @@ import {
   vtexAdapter,
   cotoAdapter,
   empty,
+  stripQueryNoise,
   SUPERMARKETS,
   type PriceResult,
   type Supermarket,
@@ -112,7 +113,7 @@ async function fetchAndCacheMissing(
 function buildResult(itemNames: string[], fresh: Map<string, PriceResult>): ItemPrices {
   const result: ItemPrices = {};
   for (const name of itemNames) {
-    const query = name.toLowerCase().trim();
+    const query = stripQueryNoise(name.toLowerCase().trim());
     result[name] = SUPERMARKETS.map(({ key }) => fresh.get(cacheKey(query, key)) ?? empty(key));
   }
   return result;
@@ -124,7 +125,7 @@ export async function serviceGetItemPrices(
   itemNames: string[]
 ): Promise<ItemPrices> {
   await ensureMember(listId, userId);
-  const queries = [...new Set(itemNames.map((n) => n.toLowerCase().trim()))];
+  const queries = [...new Set(itemNames.map((n) => stripQueryNoise(n.toLowerCase().trim())))];
   const { all, staleKeys } = await loadAllFromCache(queries);
 
   const missingKeys = queries.flatMap((q) =>

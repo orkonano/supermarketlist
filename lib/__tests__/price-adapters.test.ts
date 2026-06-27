@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { vtexAdapter, cotoAdapter, empty, formatARS } from "../price-adapters";
+import { vtexAdapter, cotoAdapter, empty, formatARS, stripQueryNoise } from "../price-adapters";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,6 +63,26 @@ function cotoResponse(attrOverrides: Record<string, string[]> = {}) {
         ],
       },
     ],
+  };
+}
+
+function cotoResponseMulti(products: Array<Record<string, string[]>>) {
+  return {
+    contents: [{
+      MainContent: [
+        { "@type": "SearchAdjustments" },
+        {
+          "@type": "ContentSlot-Main",
+          contents: [{
+            "@type": "COTO_ResultsList",
+            records: products.map(attrs => ({
+              attributes: { "product.displayName": attrs["product.displayName"] ?? [] },
+              records: [{ attributes: attrs }],
+            })),
+          }],
+        },
+      ],
+    }],
   };
 }
 
@@ -315,5 +335,127 @@ describe("cotoAdapter", () => {
     const result = await cotoAdapter("leche");
 
     expect(result).toEqual(empty("coto"));
+  });
+
+  it("fetches up to 10 results for relevance matching", async () => {
+    const fetchMock = mockFetch(cotoResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await cotoAdapter("leche");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("Nrpp=10"),
+      expect.anything()
+    );
+  });
+
+  it("picks the best-matching product when the top result is irrelevant", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(
+        cotoResponseMulti([
+          {
+            "product.displayName": ["Banana Cavendish X Kg"],
+            "product.MARCA": ["NUESTRAS FRUTAS"],
+            "sku.activePrice": ["1899.000000"],
+            "product.mediumImage.url": ["https://static.cotodigital3.com.ar/banana.jpg"],
+          },
+          {
+            "product.displayName": ["Manteca La Serenísima 200g"],
+            "product.MARCA": ["LA SERENÍSIMA"],
+            "sku.activePrice": ["3000.000000"],
+            "product.mediumImage.url": ["https://static.cotodigital3.com.ar/manteca.jpg"],
+          },
+        ])
+      )
+    );
+
+    const result = await cotoAdapter("manteca");
+
+    expect(result.productName).toBe("Manteca La Serenísima 200g");
+    expect(result.price).toBe(3000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// stripQueryNoise
+// ---------------------------------------------------------------------------
+
+describe("stripQueryNoise", () => {
+  it("strips weight suffixes", () => {
+    expect(stripQueryNoise("manteca 500gr")).toBe("manteca");
+    expect(stripQueryNoise("aceite 1l")).toBe("aceite");
+    expect(stripQueryNoise("harina 1kg")).toBe("harina");
+    expect(stripQueryNoise("yogur 200g")).toBe("yogur");
+    expect(stripQueryNoise("leche 1lt")).toBe("leche");
+    expect(stripQueryNoise("jugo 500ml")).toBe("jugo");
+  });
+
+  it("strips percentage values", () => {
+    expect(stripQueryNoise("leche 3%")).toBe("leche");
+    expect(stripQueryNoise("leche larga vida 3% 1l")).toBe("leche larga vida");
+  });
+
+  it("keeps the core product name intact", () => {
+    expect(stripQueryNoise("leche entera")).toBe("leche entera");
+    expect(stripQueryNoise("manteca")).toBe("manteca");
+  });
+
+  it("is case-insensitive for the unit", () => {
+    expect(stripQueryNoise("Manteca 500GR")).toBe("Manteca");
+    expect(stripQueryNoise("Aceite 1L")).toBe("Aceite");
+  });
+
+  it("falls back to the original when the result would be empty", () => {
+    expect(stripQueryNoise("500gr")).toBe("500gr");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// vtexAdapter — relevance matching
+// ---------------------------------------------------------------------------
+
+describe("vtexAdapter relevance matching", () => {
+  it("fetches up to 10 results", async () => {
+    const fetchMock = mockFetch(vtexProduct());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await vtexAdapter("disco", "manteca");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("_to=9"),
+      expect.anything()
+    );
+  });
+
+  it("returns the candidate whose name best matches the query over the top result", async () => {
+    const products = [
+      {
+        productName: "Palmeritas De Manteca 200 Grs",
+        brand: "ELABORACION PROPIA",
+        link: "https://www.disco.com.ar/palmeritas",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 6499 } }] }],
+      },
+      {
+        productName: "Manteca La Serenísima 200g",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/manteca",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 4600 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const result = await vtexAdapter("disco", "manteca");
+
+    expect(result.productName).toBe("Manteca La Serenísima 200g");
+    expect(result.price).toBe(4600);
+  });
+
+  it("falls back to the first product when no candidate matches the query", async () => {
+    vi.stubGlobal("fetch", mockFetch(vtexProduct()));
+
+    const result = await vtexAdapter("disco", "xyz_nonexistent");
+
+    expect(result.productName).toBe("Leche La Serenísima 1L");
   });
 });
