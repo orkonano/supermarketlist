@@ -52,11 +52,48 @@ const COTO_ATTRS = {
 // "manteca 500gr" → "manteca"; "leche larga vida 3% 1l" → "leche larga vida"
 export function stripQueryNoise(query: string): string {
   const stripped = query
-    .replace(/\b\d+([.,]\d+)?\s*(g|gr|kg|ml|l|lt)\b/gi, "")
+    .replace(/\b\d+(?:[.,]\d+)?\s*(?:g(?:r(?:[sm])?)?|l(?:ts?)?|ml|kg)\b/gi, "")
     .replace(/\d+%/gi, "")
     .replace(/\s+/g, " ")
     .trim();
   return stripped || query.trim();
+}
+
+// Builds flexible match patterns for each size token in the query.
+// "manteca 500gr" → [/\b500\s*g(?:r(?:[sm])?)?\b/i]
+// "leche 3% 1l"   → [/\b1\s*l(?:ts?)?\b/i]
+export function parseSizeTokens(query: string): RegExp[] {
+  const sizeRe = /\b(\d+(?:[.,]\d+)?)\s*(g(?:r(?:[sm])?)?|l(?:ts?)?|ml|kg)\b/gi;
+  const patterns: RegExp[] = [];
+  for (const m of query.matchAll(sizeRe)) {
+    const num = m[1]!.replace(",", ".");
+    patterns.push(new RegExp(`\\b${num}\\s*${unitToPattern(m[2]!)}\\b`, "i"));
+  }
+  return patterns;
+}
+
+// "manteca 500gr" → ["500"]; "leche 3% 1l" → ["1"]; "arroz" → []
+export function extractSizeNumbers(query: string): string[] {
+  const sizeRe = /\b(\d+(?:[.,]\d+)?)\s*(g(?:r(?:[sm])?)?|l(?:ts?)?|ml|kg)\b/gi;
+  return [...query.matchAll(sizeRe)].map(m => m[1]!.replace(",", "."));
+}
+
+// "manteca 500gr" → "manteca 500"; "leche larga vida 3% 1l" → "leche larga vida 1"
+// When nothing strips (base === q), return as-is — sizes are already embedded.
+export function buildVtexQuery(query: string): string {
+  const q = query.toLowerCase();
+  const base = stripQueryNoise(q);
+  if (base === q) return q;
+  const sizes = extractSizeNumbers(q);
+  return [base, ...sizes].join(" ").trim();
+}
+
+function unitToPattern(unit: string): string {
+  const u = unit.toLowerCase();
+  if (u.startsWith("g")) return "g(?:r(?:[sm])?)?";
+  if (u === "ml") return "ml";
+  if (u === "kg") return "kg";
+  return "l(?:ts?)?"; // l / lt / lts
 }
 
 function isValidPrice(price: number | null | undefined): price is number {
@@ -108,45 +145,82 @@ function buildCotoResult(attrs: Record<string, string[]>, price: number | null, 
   };
 }
 
-function scoreWords(name: string, words: string[]): number {
-  const lower = name.toLowerCase();
-  return words.reduce((acc, w) => {
-    if (!lower.includes(w)) return acc;
-    // Products whose name starts with the query word rank above ones that merely contain it
-    return acc + (lower.startsWith(w) ? 2 : 1);
-  }, 0);
-}
-
 function parseQueryWords(query: string): string[] {
   return query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 }
 
-function findBestVtexProduct(products: VtexProduct[], query: string): VtexProduct | null {
-  if (!products.length) return null;
-  const words = parseQueryWords(query);
-  if (!words.length) return products[0] ?? null;
-
-  const scored = products.map(p => ({ p, score: scoreWords(p.productName ?? "", words) }));
-  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
-  return best.score > 0 ? best.p : products[0] ?? null;
+// Scores a product name against noun words. A product with zero noun score
+// shares no nouns with the query and is disqualified.
+function nounScore(name: string, words: string[]): number {
+  const lower = name.toLowerCase();
+  return words.reduce(
+    (acc, w) => (lower.includes(w) ? acc + (lower.startsWith(w) ? 2 : 1) : acc),
+    0
+  );
 }
 
-function findBestCotoAttrs(allAttrs: Array<Record<string, string[]>>, query: string): Record<string, string[]> | null {
-  if (!allAttrs.length) return null;
-  const words = parseQueryWords(query);
-  if (!words.length) return allAttrs[0] ?? null;
+type Candidate<T> = { item: T; name: string; price: number | null };
 
-  const scored = allAttrs.map(attrs => ({
-    attrs,
-    score: scoreWords(attrs[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? "", words),
-  }));
-  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
-  return best.score > 0 ? best.attrs : allAttrs[0] ?? null;
+function selectBest<T>(
+  candidates: Candidate<T>[],
+  query: string,
+  sizePatterns: RegExp[]
+): T | null {
+  if (!candidates.length) return null;
+  const words = parseQueryWords(query);
+  if (!words.length) return candidates[0]!.item;
+
+  const relevant = candidates.filter(c => nounScore(c.name, words) > 0);
+  if (!relevant.length) return null;
+
+  const priced = relevant.filter(c => isValidPrice(c.price));
+  const pool = priced.length ? priced : relevant;
+
+  const sized = sizePatterns.length
+    ? pool.filter(c => sizePatterns.some(p => p.test(c.name)))
+    : [];
+  const finalPool = sized.length ? sized : pool;
+
+  if (priced.length) {
+    return finalPool.reduce((a, b) => (b.price! < a.price! ? b : a)).item;
+  }
+  return finalPool.reduce((a, b) =>
+    nounScore(b.name, words) > nounScore(a.name, words) ? b : a
+  ).item;
+}
+
+function findBestVtexProduct(
+  products: VtexProduct[],
+  query: string,
+  sizePatterns: RegExp[] = []
+): VtexProduct | null {
+  return selectBest(
+    products.map(p => ({ item: p, name: p.productName ?? "", price: getVtexRawPrice(p) })),
+    query,
+    sizePatterns
+  );
+}
+
+function findBestCotoAttrs(
+  allAttrs: Array<Record<string, string[]>>,
+  query: string,
+  sizePatterns: RegExp[] = []
+): Record<string, string[]> | null {
+  return selectBest(
+    allAttrs.map(a => ({
+      item: a,
+      name: a[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? "",
+      price: a[COTO_ATTRS.PRICE]?.[0] ? parseFloat(a[COTO_ATTRS.PRICE]![0]!) : null,
+    })),
+    query,
+    sizePatterns
+  );
 }
 
 export async function vtexAdapter(
   store: "disco" | "carrefour",
-  query: string
+  query: string,
+  sizePatterns: RegExp[] = []
 ): Promise<PriceResult> {
   const base = VTEX_HOSTS[store];
   const url = `${base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(query)}&_from=0&_to=9`;
@@ -160,7 +234,7 @@ export async function vtexAdapter(
 
     const data: unknown = await res.json();
     if (!Array.isArray(data)) return empty(store);
-    const product = findBestVtexProduct(data as VtexProduct[], query);
+    const product = findBestVtexProduct(data as VtexProduct[], query, sizePatterns);
     if (!product) return empty(store);
 
     const rawPrice = getVtexRawPrice(product);
@@ -172,7 +246,10 @@ export async function vtexAdapter(
   }
 }
 
-export async function cotoAdapter(query: string): Promise<PriceResult> {
+export async function cotoAdapter(
+  query: string,
+  sizePatterns: RegExp[] = []
+): Promise<PriceResult> {
   const url = `https://www.cotodigital.com.ar/sitios/cdigi/browse?Ntt=${encodeURIComponent(query)}&Nrpp=10&view=json&format=json`;
 
   try {
@@ -183,7 +260,7 @@ export async function cotoAdapter(query: string): Promise<PriceResult> {
     }
 
     const data: unknown = await res.json();
-    const attrs = findBestCotoAttrs(getAllCotoAttrs(data), query);
+    const attrs = findBestCotoAttrs(getAllCotoAttrs(data), query, sizePatterns);
     if (!attrs) return empty("coto");
 
     const priceStr = attrs[COTO_ATTRS.PRICE]?.[0];
