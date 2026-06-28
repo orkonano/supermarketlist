@@ -4,6 +4,7 @@ import {
   cotoAdapter,
   empty,
   stripQueryNoise,
+  buildVtexQuery,
   parseSizeTokens,
   SUPERMARKETS,
   type PriceResult,
@@ -16,7 +17,8 @@ export type ItemPrices = Record<string, PriceResult[]>;
 
 type QueryPlan = {
   cacheKey: string;       // original lowercased name — stored in DB and used for lookup
-  searchQuery: string;    // noise-stripped — sent to supermarket APIs
+  searchQuery: string;    // stripped — used by Coto
+  vtexQuery: string;      // stripped + size number — used by VTEX
   sizePatterns: RegExp[]; // flexible size match patterns for scoring
 };
 
@@ -25,6 +27,7 @@ function buildQueryPlan(itemName: string): QueryPlan {
   return {
     cacheKey,
     searchQuery: stripQueryNoise(cacheKey),
+    vtexQuery: buildVtexQuery(cacheKey),
     sizePatterns: parseSizeTokens(cacheKey),
   };
 }
@@ -92,7 +95,7 @@ async function fetchAndCache(
 ): Promise<void> {
   const r = supermarket === "coto"
     ? await cotoAdapter(plan.searchQuery, plan.sizePatterns)
-    : await vtexAdapter(supermarket, plan.searchQuery, plan.sizePatterns);
+    : await vtexAdapter(supermarket, plan.vtexQuery, plan.sizePatterns);
   fresh.set(cacheKey(plan.cacheKey, supermarket), r);
 }
 

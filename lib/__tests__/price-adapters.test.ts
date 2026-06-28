@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { vtexAdapter, cotoAdapter, empty, formatARS, stripQueryNoise, parseSizeTokens } from "../price-adapters";
+import { vtexAdapter, cotoAdapter, empty, formatARS, stripQueryNoise, parseSizeTokens, extractSizeNumbers, buildVtexQuery } from "../price-adapters";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -451,12 +451,14 @@ describe("vtexAdapter relevance matching", () => {
     expect(result.price).toBe(4600);
   });
 
-  it("falls back to the first product when no candidate matches the query", async () => {
+  // Contract change: selectBest disqualifies candidates with zero noun score
+  // rather than falling back to products[0], so a no-match query yields empty.
+  it("returns empty when no candidate matches the query", async () => {
     vi.stubGlobal("fetch", mockFetch(vtexProduct()));
 
     const result = await vtexAdapter("disco", "xyz_nonexistent");
 
-    expect(result.productName).toBe("Leche La Serenísima 1L");
+    expect(result).toEqual(empty("disco"));
   });
 });
 
@@ -555,12 +557,13 @@ describe("vtexAdapter — size-aware scoring", () => {
     ];
     vi.stubGlobal("fetch", mockFetch(products));
 
-    // No 500g manteca exists — falls back to best noun match
+    // No 500g manteca exists — among equally-relevant priced candidates with no
+    // size match, selectBest now picks the cheapest rather than the best noun score.
     const sizePatterns = [/\b500\s*g(?:r(?:[sm])?)?\b/i];
     const result = await vtexAdapter("disco", "manteca", sizePatterns);
 
-    // Should return the best noun match (Manteca La Serenísima starts with "manteca")
-    expect(result.productName).toBe("Manteca La Serenísima 200g");
+    expect(result.productName).toBe("Manteca Tonadita 100g");
+    expect(result.price).toBe(1500);
   });
 });
 
@@ -591,5 +594,226 @@ describe("cotoAdapter — size-aware scoring", () => {
 
     expect(result.productName).toBe("Leche La Serenísima 1 Lt");
     expect(result.price).toBe(1890);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractSizeNumbers
+// ---------------------------------------------------------------------------
+
+describe("extractSizeNumbers", () => {
+  it("extracts the numeric part of size tokens", () => {
+    expect(extractSizeNumbers("manteca 500gr")).toEqual(["500"]);
+    expect(extractSizeNumbers("queso 1,5kg")).toEqual(["1.5"]); // comma normalized to dot
+    expect(extractSizeNumbers("pan")).toEqual([]);
+    expect(extractSizeNumbers("leche 3% 1l")).toEqual(["1"]); // percentage not captured
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildVtexQuery
+// ---------------------------------------------------------------------------
+
+describe("buildVtexQuery", () => {
+  it("appends size number to stripped query", () => {
+    expect(buildVtexQuery("Manteca 500gr")).toBe("manteca 500");
+    expect(buildVtexQuery("Leche Larga Vida 3% 1l")).toBe("leche larga vida 1");
+    expect(buildVtexQuery("arroz")).toBe("arroz");
+    expect(buildVtexQuery("500gr")).toBe("500gr"); // only size, no noun → fallback to original
+  });
+});
+
+// ---------------------------------------------------------------------------
+// selectBest precedence — relevant → priced → size-matched → cheapest
+// ---------------------------------------------------------------------------
+
+describe("vtexAdapter — selectBest precedence", () => {
+  // Test 3: the core manteca wrong-size bug
+  it("prefers the size-matched product over a cheaper same-noun product", async () => {
+    const products = [
+      {
+        productName: "Manteca Tonadita 500 Gr",
+        brand: "TONADITA",
+        link: "https://www.disco.com.ar/manteca-tonadita-500",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 3800 } }] }],
+      },
+      {
+        productName: "Manteca La Serenísima 200g",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/manteca-200g",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1500 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const sizePatterns = [/\b500\s*g(?:r(?:[sm])?)?\b/i];
+    const result = await vtexAdapter("disco", "manteca", sizePatterns);
+
+    expect(result.productName).toBe("Manteca Tonadita 500 Gr");
+    expect(result.price).toBe(3800);
+  });
+
+  // Test 5: priced candidate preferred over equally-relevant null-price one
+  it("prefers a priced product over an equally-relevant null-price one", async () => {
+    const products = [
+      {
+        productName: "Leche Entera La Serenísima 1L",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/leche-entera",
+        items: [{ images: [], sellers: [] }],
+      },
+      {
+        productName: "Leche Descremada La Serenísima 1L",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/leche-descremada",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1200 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const result = await vtexAdapter("disco", "leche");
+
+    expect(result.productName).toBe("Leche Descremada La Serenísima 1L");
+    expect(result.price).toBe(1200);
+  });
+
+  // Test 6: no relevant candidate → empty, not a false positive
+  it("returns empty when no candidate name matches the query noun", async () => {
+    const products = [
+      {
+        productName: "Jabón en Polvo Ala 800g",
+        brand: "ALA",
+        link: "https://www.disco.com.ar/jabon",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1500 } }] }],
+      },
+      {
+        productName: "Pochoclos Dulces 100g",
+        brand: "POCHOCLOS",
+        link: "https://www.disco.com.ar/pochoclos",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 800 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const result = await vtexAdapter("disco", "manteca");
+
+    expect(result).toEqual(empty("disco"));
+  });
+
+  // Test 7: plain query, no size → cheapest relevant
+  it("picks the cheapest relevant product when no size is requested", async () => {
+    const products = [
+      {
+        productName: "Leche Entera A 1L",
+        brand: "A",
+        link: "https://www.disco.com.ar/a",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1500 } }] }],
+      },
+      {
+        productName: "Leche Entera B 1L",
+        brand: "B",
+        link: "https://www.disco.com.ar/b",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1200 } }] }],
+      },
+      {
+        productName: "Leche Entera C 1L",
+        brand: "C",
+        link: "https://www.disco.com.ar/c",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 1800 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const result = await vtexAdapter("disco", "leche");
+
+    expect(result.productName).toBe("Leche Entera B 1L");
+    expect(result.price).toBe(1200);
+  });
+
+  // Test 8: a valid price outranks an exact-size match that has no price.
+  // This DOCUMENTS the tradeoff — it is intentional behavior.
+  it("prefers a priced product over an exact-size match with no price", async () => {
+    const products = [
+      {
+        productName: "Manteca Tonadita 500g",
+        brand: "TONADITA",
+        link: "https://www.disco.com.ar/manteca-500",
+        items: [{ images: [], sellers: [] }],
+      },
+      {
+        productName: "Manteca La Serenísima 200g",
+        brand: "LA SERENÍSIMA",
+        link: "https://www.disco.com.ar/manteca-200",
+        items: [{ images: [], sellers: [{ commertialOffer: { Price: 500 } }] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const sizePatterns = [/\b500\s*g(?:r(?:[sm])?)?\b/i];
+    const result = await vtexAdapter("disco", "manteca", sizePatterns);
+
+    expect(result.productName).toBe("Manteca La Serenísima 200g");
+    expect(result.price).toBe(500);
+  });
+
+  // Test 9: all relevant candidates unpriced → return one with null price (dash), not empty
+  it("returns a relevant product with null price when none are priced", async () => {
+    const products = [
+      {
+        productName: "Manteca A 200g",
+        brand: "A",
+        link: "https://www.disco.com.ar/a",
+        items: [{ images: [], sellers: [] }],
+      },
+      {
+        productName: "Manteca B 200g",
+        brand: "B",
+        link: "https://www.disco.com.ar/b",
+        items: [{ images: [], sellers: [] }],
+      },
+    ];
+    vi.stubGlobal("fetch", mockFetch(products));
+
+    const result = await vtexAdapter("disco", "manteca");
+
+    expect(result.price).toBeNull();
+    expect(result.productName).not.toBeNull();
+    expect(["Manteca A 200g", "Manteca B 200g"]).toContain(result.productName);
+  });
+});
+
+describe("cotoAdapter — selectBest precedence", () => {
+  // Test 4: junk filter + cheapest. Banana (noun score 0) disqualified; cheapest butter wins.
+  it("disqualifies a non-matching product and picks the cheapest relevant one", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch(
+        cotoResponseMulti([
+          {
+            "product.displayName": ["Banana Cavendish X Kg"],
+            "product.MARCA": ["NUESTRAS FRUTAS"],
+            "sku.activePrice": ["1899.000000"],
+            "product.mediumImage.url": ["https://img.jpg"],
+          },
+          {
+            "product.displayName": ["Manteca Tonadita 200g"],
+            "product.MARCA": ["TONADITA"],
+            "sku.activePrice": ["9599.000000"],
+            "product.mediumImage.url": ["https://img.jpg"],
+          },
+          {
+            "product.displayName": ["Manteca Primitiva 200g"],
+            "product.MARCA": ["PRIMITIVA"],
+            "sku.activePrice": ["2465.000000"],
+            "product.mediumImage.url": ["https://img.jpg"],
+          },
+        ])
+      )
+    );
+
+    const result = await cotoAdapter("manteca");
+
+    expect(result.productName).toBe("Manteca Primitiva 200g");
+    expect(result.price).toBe(2465);
   });
 });

@@ -72,6 +72,22 @@ export function parseSizeTokens(query: string): RegExp[] {
   return patterns;
 }
 
+// "manteca 500gr" → ["500"]; "leche 3% 1l" → ["1"]; "arroz" → []
+export function extractSizeNumbers(query: string): string[] {
+  const sizeRe = /\b(\d+(?:[.,]\d+)?)\s*(g(?:r(?:[sm])?)?|l(?:ts?)?|ml|kg)\b/gi;
+  return [...query.matchAll(sizeRe)].map(m => m[1]!.replace(",", "."));
+}
+
+// "manteca 500gr" → "manteca 500"; "leche larga vida 3% 1l" → "leche larga vida 1"
+// When nothing strips (base === q), return as-is — sizes are already embedded.
+export function buildVtexQuery(query: string): string {
+  const q = query.toLowerCase();
+  const base = stripQueryNoise(q);
+  if (base === q) return q;
+  const sizes = extractSizeNumbers(q);
+  return [base, ...sizes].join(" ").trim();
+}
+
 function unitToPattern(unit: string): string {
   const u = unit.toLowerCase();
   if (u.startsWith("g")) return "g(?:r(?:[sm])?)?";
@@ -133,16 +149,44 @@ function parseQueryWords(query: string): string[] {
   return query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 }
 
-// Scores a product name against noun words (required) and size patterns (tiebreaker).
-// A product with zero noun score is disqualified regardless of size match.
-function scoreWords(name: string, words: string[], sizePatterns: RegExp[] = []): number {
+// Scores a product name against noun words. A product with zero noun score
+// shares no nouns with the query and is disqualified.
+function nounScore(name: string, words: string[]): number {
   const lower = name.toLowerCase();
-  const nounScore = words.reduce((acc, w) => {
-    if (!lower.includes(w)) return acc;
-    return acc + (lower.startsWith(w) ? 2 : 1);
-  }, 0);
-  if (nounScore === 0) return 0;
-  return nounScore + sizePatterns.filter(p => p.test(name)).length;
+  return words.reduce(
+    (acc, w) => (lower.includes(w) ? acc + (lower.startsWith(w) ? 2 : 1) : acc),
+    0
+  );
+}
+
+type Candidate<T> = { item: T; name: string; price: number | null };
+
+function selectBest<T>(
+  candidates: Candidate<T>[],
+  query: string,
+  sizePatterns: RegExp[]
+): T | null {
+  if (!candidates.length) return null;
+  const words = parseQueryWords(query);
+  if (!words.length) return candidates[0]!.item;
+
+  const relevant = candidates.filter(c => nounScore(c.name, words) > 0);
+  if (!relevant.length) return null;
+
+  const priced = relevant.filter(c => isValidPrice(c.price));
+  const pool = priced.length ? priced : relevant;
+
+  const sized = sizePatterns.length
+    ? pool.filter(c => sizePatterns.some(p => p.test(c.name)))
+    : [];
+  const finalPool = sized.length ? sized : pool;
+
+  if (priced.length) {
+    return finalPool.reduce((a, b) => (b.price! < a.price! ? b : a)).item;
+  }
+  return finalPool.reduce((a, b) =>
+    nounScore(b.name, words) > nounScore(a.name, words) ? b : a
+  ).item;
 }
 
 function findBestVtexProduct(
@@ -150,16 +194,11 @@ function findBestVtexProduct(
   query: string,
   sizePatterns: RegExp[] = []
 ): VtexProduct | null {
-  if (!products.length) return null;
-  const words = parseQueryWords(query);
-  if (!words.length) return products[0] ?? null;
-
-  const scored = products.map(p => ({
-    p,
-    score: scoreWords(p.productName ?? "", words, sizePatterns),
-  }));
-  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
-  return best.score > 0 ? best.p : products[0] ?? null;
+  return selectBest(
+    products.map(p => ({ item: p, name: p.productName ?? "", price: getVtexRawPrice(p) })),
+    query,
+    sizePatterns
+  );
 }
 
 function findBestCotoAttrs(
@@ -167,16 +206,15 @@ function findBestCotoAttrs(
   query: string,
   sizePatterns: RegExp[] = []
 ): Record<string, string[]> | null {
-  if (!allAttrs.length) return null;
-  const words = parseQueryWords(query);
-  if (!words.length) return allAttrs[0] ?? null;
-
-  const scored = allAttrs.map(attrs => ({
-    attrs,
-    score: scoreWords(attrs[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? "", words, sizePatterns),
-  }));
-  const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
-  return best.score > 0 ? best.attrs : allAttrs[0] ?? null;
+  return selectBest(
+    allAttrs.map(a => ({
+      item: a,
+      name: a[COTO_ATTRS.DISPLAY_NAME]?.[0] ?? "",
+      price: a[COTO_ATTRS.PRICE]?.[0] ? parseFloat(a[COTO_ATTRS.PRICE]![0]!) : null,
+    })),
+    query,
+    sizePatterns
+  );
 }
 
 export async function vtexAdapter(
